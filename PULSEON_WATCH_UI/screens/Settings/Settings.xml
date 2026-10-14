@@ -1,0 +1,93 @@
+<screen>
+	<view width="320" height="240" style_bg_color="#color_dark_bg">
+
+		<lv_label
+			x="12"
+			y="10"
+			text="SETTINGS"
+			style_text_color="#color_dark_text"
+			style_text_font="font_h4"
+		/>
+
+		<lv_obj
+			x="12"
+			y="50"
+			width="296"
+			height="42"
+			style_bg_color="#color_dark_panel"
+			style_radius="#radius_default"
+		>
+			<lv_label
+				x="12"
+				y="10"
+				text="Display"
+				style_text_color="#color_dark_text"
+				style_text_font="font_h5"
+			/>
+			<lv_label
+				x="225"
+				y="11"
+				text="OPEN"
+				style_text_color="#color_accent"
+				style_text_font="font_h5"
+			/>
+		</lv_obj>
+
+		<lv_obj
+			x="12"
+			y="101"
+			width="296"
+			height="42"
+			style_bg_color="#color_dark_panel"
+			style_radius="#radius_default"
+		>
+			<lv_label
+				x="12"
+				y="10"
+				text="Bluetooth"
+				style_text_color="#color_dark_text"
+				style_text_font="font_h5"
+			/>
+			<lv_label
+				x="225"
+				y="11"
+				text="OPEN"
+				style_text_color="#color_accent"
+				style_text_font="font_h5"
+			/>
+		</lv_obj>
+
+		<lv_obj
+			x="12"
+			y="152"
+			width="296"
+			height="42"
+			style_bg_color="#color_dark_panel"
+			style_radius="#radius_default"
+		>
+			<lv_label
+				x="12"
+				y="10"
+				text="About PULSEON"
+				style_text_color="#color_dark_text"
+				style_text_font="font_h5"
+			/>
+			<lv_label
+				x="225"
+				y="11"
+				text="OPEN"
+				style_text_color="#color_accent"
+				style_text_font="font_h5"
+			/>
+		</lv_obj>
+
+		<lv_label
+			x="12"
+			y="210"
+			text="PULSEON WATCH OS"
+			style_text_color="#color_dark_text"
+			style_text_font="font_body"
+		/>
+
+	</view>
+</screen>

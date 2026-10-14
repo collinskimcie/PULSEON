@@ -1,0 +1,66 @@
+<screen>
+	<view width="320" height="240" style_bg_color="#color_dark_bg">
+
+		<lv_label
+			x="12"
+			y="10"
+			text="WEATHER"
+			style_text_color="#color_dark_text"
+			style_text_font="font_h4"
+		/>
+
+		<lv_label
+			x="0"
+			y="55"
+			width="320"
+			text="24 C"
+			style_text_color="#color_accent"
+			style_text_font="font_h1"
+			style_text_align="center"
+		/>
+
+		<lv_label
+			x="0"
+			y="112"
+			width="320"
+			text="PARTLY CLOUDY"
+			style_text_color="#color_dark_text"
+			style_text_font="font_h5"
+			style_text_align="center"
+		/>
+
+		<lv_obj
+			x="12"
+			y="158"
+			width="296"
+			height="50"
+			style_bg_color="#color_dark_panel"
+			style_radius="#radius_default"
+		>
+			<lv_label
+				x="12"
+				y="8"
+				text="LOW  18 C"
+				style_text_color="#color_dark_text"
+				style_text_font="font_body"
+			/>
+			<lv_label
+				x="174"
+				y="8"
+				text="HIGH  27 C"
+				style_text_color="#color_dark_text"
+				style_text_font="font_body"
+			/>
+			<lv_label
+				x="0"
+				y="29"
+				width="296"
+				text="NYERI"
+				style_text_color="#color_accent"
+				style_text_font="font_body"
+				style_text_align="center"
+			/>
+		</lv_obj>
+
+	</view>
+</screen>

@@ -1,0 +1,129 @@
+<screen>
+	<view width="320" height="240" style_bg_color="#color_dark_bg">
+
+		<lv_label
+			x="12"
+			y="10"
+			text="QUICK CONTROLS"
+			style_text_color="#color_dark_text"
+			style_text_font="font_h4"
+		/>
+
+		<lv_obj
+			x="12"
+			y="52"
+			width="92"
+			height="62"
+			style_bg_color="#color_dark_panel"
+			style_radius="#radius_default"
+		>
+			<lv_label
+				x="0"
+				y="12"
+				width="92"
+				text="BT"
+				style_text_color="#color_accent"
+				style_text_font="font_h4"
+				style_text_align="center"
+			/>
+			<lv_label
+				x="0"
+				y="38"
+				width="92"
+				text="ON"
+				style_text_color="#color_dark_text"
+				style_text_font="font_body"
+				style_text_align="center"
+			/>
+		</lv_obj>
+
+		<lv_obj
+			x="114"
+			y="52"
+			width="92"
+			height="62"
+			style_bg_color="#color_dark_panel"
+			style_radius="#radius_default"
+		>
+			<lv_label
+				x="0"
+				y="12"
+				width="92"
+				text="WIFI"
+				style_text_color="#color_accent"
+				style_text_font="font_h4"
+				style_text_align="center"
+			/>
+			<lv_label
+				x="0"
+				y="38"
+				width="92"
+				text="ON"
+				style_text_color="#color_dark_text"
+				style_text_font="font_body"
+				style_text_align="center"
+			/>
+		</lv_obj>
+
+		<lv_obj
+			x="216"
+			y="52"
+			width="92"
+			height="62"
+			style_bg_color="#color_dark_panel"
+			style_radius="#radius_default"
+		>
+			<lv_label
+				x="0"
+				y="12"
+				width="92"
+				text="SOUND"
+				style_text_color="#color_accent"
+				style_text_font="font_h4"
+				style_text_align="center"
+			/>
+			<lv_label
+				x="0"
+				y="38"
+				width="92"
+				text="ON"
+				style_text_color="#color_dark_text"
+				style_text_font="font_body"
+				style_text_align="center"
+			/>
+		</lv_obj>
+
+		<lv_label
+			x="12"
+			y="148"
+			text="BRIGHTNESS"
+			style_text_color="#color_dark_text"
+			style_text_font="font_body"
+		/>
+
+		<lv_label
+			x="245"
+			y="146"
+			text="80%"
+			style_text_color="#color_accent"
+			style_text_font="font_h5"
+		/>
+
+		<lv_label
+			x="12"
+			y="192"
+			text="BATTERY"
+			style_text_color="#color_dark_text"
+			style_text_font="font_body"
+		/>
+
+		<lv_label
+			x="245"
+			y="190"
+			text="86%"
+			style_text_color="#color_accent"
+			style_text_font="font_h5"
+		/>
+
+	</view>
+</screen>

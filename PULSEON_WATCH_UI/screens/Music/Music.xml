@@ -1,0 +1,61 @@
+<screen>
+	<view width="320" height="240" style_bg_color="#color_dark_bg">
+
+		<lv_label
+			x="12"
+			y="10"
+			text="MUSIC"
+			style_text_color="#color_dark_text"
+			style_text_font="font_h4"
+		/>
+
+		<lv_label
+			x="0"
+			y="60"
+			width="320"
+			text="NOT PLAYING"
+			style_text_color="#color_dark_text"
+			style_text_font="font_h4"
+			style_text_align="center"
+		/>
+
+		<lv_label
+			x="0"
+			y="102"
+			width="320"
+			text="No track selected"
+			style_text_color="#color_dark_text"
+			style_text_font="font_body"
+			style_text_align="center"
+		/>
+
+		<lv_obj
+			x="12"
+			y="155"
+			width="296"
+			height="55"
+			style_bg_color="#color_dark_panel"
+			style_radius="#radius_default"
+		>
+			<lv_label
+				x="0"
+				y="12"
+				width="296"
+				text="PLAY"
+				style_text_color="#color_accent"
+				style_text_font="font_h5"
+				style_text_align="center"
+			/>
+			<lv_label
+				x="0"
+				y="35"
+				width="296"
+				text="PHONE MEDIA"
+				style_text_color="#color_dark_text"
+				style_text_font="font_body"
+				style_text_align="center"
+			/>
+		</lv_obj>
+
+	</view>
+</screen>

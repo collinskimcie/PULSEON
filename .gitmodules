@@ -1,0 +1,6 @@
+[submodule "vendor/ESP32_Display_Panel"]
+    path = vendor/ESP32_Display_Panel
+    url = https://github.com/esp-arduino-libs/ESP32_Display_Panel.git
+[submodule "vendor/ESP32_IO_Expander"]
+    path = vendor/ESP32_IO_Expander
+    url = https://github.com/esp-arduino-libs/ESP32_IO_Expander.git

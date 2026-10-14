@@ -1,0 +1,69 @@
+<screen>
+	<view width="320" height="240" style_bg_color="#color_dark_bg">
+
+		<lv_label
+			x="12"
+			y="10"
+			text="NOTIFICATIONS"
+			style_text_color="#color_dark_text"
+			style_text_font="font_h4"
+		/>
+
+		<lv_obj
+			x="12"
+			y="52"
+			width="296"
+			height="52"
+			style_bg_color="#color_dark_panel"
+			style_radius="#radius_default"
+		>
+			<lv_label
+				x="12"
+				y="7"
+				text="Messages"
+				style_text_color="#color_dark_text"
+				style_text_font="font_h5"
+			/>
+			<lv_label
+				x="12"
+				y="29"
+				text="No new messages"
+				style_text_color="#color_dark_text"
+				style_text_font="font_body"
+			/>
+		</lv_obj>
+
+		<lv_obj
+			x="12"
+			y="116"
+			width="296"
+			height="52"
+			style_bg_color="#color_dark_panel"
+			style_radius="#radius_default"
+		>
+			<lv_label
+				x="12"
+				y="7"
+				text="Phone"
+				style_text_color="#color_dark_text"
+				style_text_font="font_h5"
+			/>
+			<lv_label
+				x="12"
+				y="29"
+				text="Connected"
+				style_text_color="#color_accent"
+				style_text_font="font_body"
+			/>
+		</lv_obj>
+
+		<lv_label
+			x="12"
+			y="198"
+			text="Swipe down to refresh"
+			style_text_color="#color_dark_text"
+			style_text_font="font_body"
+		/>
+
+	</view>
+</screen>
