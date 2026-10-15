@@ -27,6 +27,8 @@ public:
     Screen getCurrentScreen() const;
 
 private:
+    static void screenGestureCallback(lv_event_t* event);
+
     void createScreens();
 
     void createWatchHome();
