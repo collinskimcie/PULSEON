@@ -1,0 +1,26 @@
+# PlatformIO build artifacts
+PULSEON_FIRMWARE/.pio/
+PULSEON_FIRMWARE/.pioenvs/
+PULSEON_FIRMWARE/.piolibdeps/
+# LVGL Pro Editor temporary files
+PULSEON_WATCH_UI/preview-build/
+PULSEON_WATCH_UI/.cache.json
+PULSEON_WATCH_UI/.mcp.json
+# Operating system and temporary files
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+
+# PULSEON local duplicates, backups, and machine-specific files
+/PULSEON/
+/PULSEON_FIRMWARE/.vscode/
+*.before-*
+*.before_*
+*.bak-*
+
+# LVGL Pro Editor generated/local files
+/PULSEON_WATCH_UI/preview-build/
+/PULSEON_WATCH_UI/preview-bin/
+/PULSEON_WATCH_UI/.cache.json
+/PULSEON_WATCH_UI/.mcp.json
