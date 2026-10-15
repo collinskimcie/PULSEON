@@ -20,6 +20,8 @@ void UIManager::begin(AppStateManager* state)
 
     Serial.println("[UI] Initializing UI manager...");
 
+    PULSEON_WATCH_UI_init(nullptr);
+
     createScreens();
 
     showScreen(SCREEN_WATCH_HOME);
@@ -68,6 +70,30 @@ void UIManager::createScreens()
         Serial.println(
             "[UI] ERROR: Settings_create() returned NULL"
         );
+    }
+
+    lv_obj_t* screens[] =
+    {
+        watchHome,
+        notifications,
+        quickControls,
+        health,
+        weather,
+        music,
+        settings
+    };
+
+    for (lv_obj_t* screen : screens)
+    {
+        if (screen != nullptr)
+        {
+            lv_obj_add_event_cb(
+                screen,
+                screenGestureCallback,
+                LV_EVENT_GESTURE,
+                this
+            );
+        }
     }
 
     Serial.println("[UI] All generated screens created");
@@ -280,6 +306,33 @@ void UIManager::showScreen(Screen screen)
         default:
             Serial.println("UNKNOWN");
             break;
+    }
+}
+
+void UIManager::screenGestureCallback(lv_event_t* event)
+{
+    UIManager* ui = static_cast<UIManager*>(lv_event_get_user_data(event));
+    lv_indev_t* input = lv_event_get_indev(event);
+
+    if (ui == nullptr || input == nullptr)
+    {
+        return;
+    }
+
+    const lv_dir_t direction = lv_indev_get_gesture_dir(input);
+
+    if (direction == LV_DIR_RIGHT)
+    {
+        const uint8_t next =
+            (static_cast<uint8_t>(ui->currentScreen) + 1) % SCREEN_COUNT;
+        ui->showScreen(static_cast<Screen>(next));
+    }
+    else if (direction == LV_DIR_LEFT)
+    {
+        const uint8_t previous =
+            (static_cast<uint8_t>(ui->currentScreen) + SCREEN_COUNT - 1) %
+            SCREEN_COUNT;
+        ui->showScreen(static_cast<Screen>(previous));
     }
 }
 

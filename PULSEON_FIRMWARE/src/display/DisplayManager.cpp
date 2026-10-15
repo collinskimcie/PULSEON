@@ -2,9 +2,14 @@
 
 #include <Arduino.h>
 #include <esp_display_panel.hpp>
+#include "draw/sw/lv_draw_sw_utils.h"
 
 using namespace esp_panel::board;
 using namespace esp_panel::drivers;
+
+static constexpr int32_t DISPLAY_WIDTH = 320;
+static constexpr int32_t DISPLAY_HEIGHT = 240;
+static constexpr int32_t DISPLAY_DRAW_BUFFER_ROWS = 20;
 
 DisplayManager* DisplayManager::instance = nullptr;
 
@@ -78,9 +83,19 @@ bool DisplayManager::begin()
      */
     lv_init();
 
-    static lv_color_t drawBuffer[320 * 20];
+    // Use Arduino's millisecond clock for LVGL 9 timer scheduling.
+    lv_tick_set_cb([]() -> uint32_t {
+        return static_cast<uint32_t>(millis());
+    });
 
-    display = lv_display_create(320, 240);
+    Serial.printf(
+        "[DISPLAY] LVGL tick source registered; current tick: %lu ms\n",
+        static_cast<unsigned long>(lv_tick_get())
+    );
+
+    static lv_color_t drawBuffer[DISPLAY_WIDTH * DISPLAY_DRAW_BUFFER_ROWS];
+
+    display = lv_display_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
     if (display == nullptr)
     {
@@ -162,13 +177,38 @@ void DisplayManager::flushCallback(
     const int32_t height =
         area->y2 - area->y1 + 1;
 
-    instance->lcd->drawBitmap(
+    const uint32_t pixelCount =
+        static_cast<uint32_t>(width * height);
+
+    lv_draw_sw_rgb565_swap(
+        px_map,
+        pixelCount
+    );
+
+    static uint32_t flushCount = 0;
+    const bool drawOk = instance->lcd->drawBitmap(
         area->x1,
         area->y1,
         width,
         height,
-        px_map
+        px_map,
+        -1
     );
+
+    ++flushCount;
+    if (flushCount <= 8) {
+        Serial.printf(
+            "[LVGL-FLUSH] #%lu area=(%ld,%ld)-(%ld,%ld) size=%ldx%ld drawBitmap=%s\n",
+            static_cast<unsigned long>(flushCount),
+            static_cast<long>(area->x1),
+            static_cast<long>(area->y1),
+            static_cast<long>(area->x2),
+            static_cast<long>(area->y2),
+            static_cast<long>(width),
+            static_cast<long>(height),
+            drawOk ? "OK" : "FAILED"
+        );
+    }
 
     lv_display_flush_ready(display);
 }

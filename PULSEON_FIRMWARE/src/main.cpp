@@ -51,6 +51,11 @@ void setup()
 
     uiManager.begin(&appState);
     Serial.println("[PULSEON] UI initialized.");
+
+    Serial.println("[PULSEON] Forcing initial LVGL refresh...");
+    lv_refr_now(displayManager.getDisplay());
+    Serial.println("[PULSEON] Initial LVGL refresh returned.");
+
     Serial.println("[PULSEON] Startup complete.");
 }
 
