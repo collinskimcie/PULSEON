@@ -1,7 +1,7 @@
 #pragma once
 
-#define PULSEON_UI_WIDTH   320
-#define PULSEON_UI_HEIGHT  240
+#define PULSEON_UI_WIDTH   240
+#define PULSEON_UI_HEIGHT  320
 
 #define PULSEON_LVGL_VERSION "9.5.0"
 

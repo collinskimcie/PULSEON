@@ -1,32 +1,32 @@
 <screen>
-	<view width="320" height="240" style_bg_color="#color_dark_bg">
+	<view width="240" height="320" style_bg_color="#color_dark_bg">
 
 		<lv_label
-			x="12"
-			y="10"
+			x="9"
+			y="13"
 			text="HEALTH"
 			style_text_color="#color_dark_text"
 			style_text_font="font_h4"
 		/>
 
 		<lv_obj
-			x="12"
-			y="52"
-			width="144"
-			height="68"
+			x="9"
+			y="69"
+			width="108"
+			height="91"
 			style_bg_color="#color_dark_panel"
 			style_radius="#radius_default"
 		>
 			<lv_label
-				x="10"
-				y="8"
+				x="8"
+				y="11"
 				text="HEART RATE"
 				style_text_color="#color_dark_text"
 				style_text_font="font_body"
 			/>
 			<lv_label
-				x="10"
-				y="32"
+				x="8"
+				y="43"
 				text="78 BPM"
 				style_text_color="#color_danger"
 				style_text_font="font_h4"
@@ -34,23 +34,23 @@
 		</lv_obj>
 
 		<lv_obj
-			x="164"
-			y="52"
-			width="144"
-			height="68"
+			x="123"
+			y="69"
+			width="108"
+			height="91"
 			style_bg_color="#color_dark_panel"
 			style_radius="#radius_default"
 		>
 			<lv_label
-				x="10"
-				y="8"
+				x="8"
+				y="11"
 				text="STEPS"
 				style_text_color="#color_dark_text"
 				style_text_font="font_body"
 			/>
 			<lv_label
-				x="10"
-				y="32"
+				x="8"
+				y="43"
 				text="6,842"
 				style_text_color="#color_accent"
 				style_text_font="font_h4"
@@ -58,32 +58,32 @@
 		</lv_obj>
 
 		<lv_label
-			x="12"
-			y="145"
+			x="9"
+			y="193"
 			text="ACTIVITY"
 			style_text_color="#color_dark_text"
 			style_text_font="font_body"
 		/>
 
 		<lv_label
-			x="245"
-			y="142"
+			x="184"
+			y="189"
 			text="72%"
 			style_text_color="#color_accent"
 			style_text_font="font_h4"
 		/>
 
 		<lv_label
-			x="12"
-			y="190"
+			x="9"
+			y="253"
 			text="CALORIES"
 			style_text_color="#color_dark_text"
 			style_text_font="font_body"
 		/>
 
 		<lv_label
-			x="245"
-			y="187"
+			x="184"
+			y="249"
 			text="486 kcal"
 			style_text_color="#color_accent"
 			style_text_font="font_h5"

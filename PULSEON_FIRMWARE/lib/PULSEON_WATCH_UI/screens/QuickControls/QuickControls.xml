@@ -1,26 +1,26 @@
 <screen>
-	<view width="320" height="240" style_bg_color="#color_dark_bg">
+	<view width="240" height="320" style_bg_color="#color_dark_bg">
 
 		<lv_label
-			x="12"
-			y="10"
+			x="9"
+			y="13"
 			text="QUICK CONTROLS"
 			style_text_color="#color_dark_text"
 			style_text_font="font_h4"
 		/>
 
 		<lv_obj
-			x="12"
-			y="52"
-			width="92"
-			height="62"
+			x="9"
+			y="69"
+			width="69"
+			height="83"
 			style_bg_color="#color_dark_panel"
 			style_radius="#radius_default"
 		>
 			<lv_label
 				x="0"
-				y="12"
-				width="92"
+				y="16"
+				width="69"
 				text="BT"
 				style_text_color="#color_accent"
 				style_text_font="font_h4"
@@ -28,8 +28,8 @@
 			/>
 			<lv_label
 				x="0"
-				y="38"
-				width="92"
+				y="51"
+				width="69"
 				text="ON"
 				style_text_color="#color_dark_text"
 				style_text_font="font_body"
@@ -38,17 +38,17 @@
 		</lv_obj>
 
 		<lv_obj
-			x="114"
-			y="52"
-			width="92"
-			height="62"
+			x="86"
+			y="69"
+			width="69"
+			height="83"
 			style_bg_color="#color_dark_panel"
 			style_radius="#radius_default"
 		>
 			<lv_label
 				x="0"
-				y="12"
-				width="92"
+				y="16"
+				width="69"
 				text="WIFI"
 				style_text_color="#color_accent"
 				style_text_font="font_h4"
@@ -56,8 +56,8 @@
 			/>
 			<lv_label
 				x="0"
-				y="38"
-				width="92"
+				y="51"
+				width="69"
 				text="ON"
 				style_text_color="#color_dark_text"
 				style_text_font="font_body"
@@ -66,17 +66,17 @@
 		</lv_obj>
 
 		<lv_obj
-			x="216"
-			y="52"
-			width="92"
-			height="62"
+			x="162"
+			y="69"
+			width="69"
+			height="83"
 			style_bg_color="#color_dark_panel"
 			style_radius="#radius_default"
 		>
 			<lv_label
 				x="0"
-				y="12"
-				width="92"
+				y="16"
+				width="69"
 				text="SOUND"
 				style_text_color="#color_accent"
 				style_text_font="font_h4"
@@ -84,8 +84,8 @@
 			/>
 			<lv_label
 				x="0"
-				y="38"
-				width="92"
+				y="51"
+				width="69"
 				text="ON"
 				style_text_color="#color_dark_text"
 				style_text_font="font_body"
@@ -94,32 +94,32 @@
 		</lv_obj>
 
 		<lv_label
-			x="12"
-			y="148"
+			x="9"
+			y="197"
 			text="BRIGHTNESS"
 			style_text_color="#color_dark_text"
 			style_text_font="font_body"
 		/>
 
 		<lv_label
-			x="245"
-			y="146"
+			x="184"
+			y="195"
 			text="80%"
 			style_text_color="#color_accent"
 			style_text_font="font_h5"
 		/>
 
 		<lv_label
-			x="12"
-			y="192"
+			x="9"
+			y="256"
 			text="BATTERY"
 			style_text_color="#color_dark_text"
 			style_text_font="font_body"
 		/>
 
 		<lv_label
-			x="245"
-			y="190"
+			x="184"
+			y="253"
 			text="86%"
 			style_text_color="#color_accent"
 			style_text_font="font_h5"

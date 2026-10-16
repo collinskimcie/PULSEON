@@ -5,80 +5,98 @@
 
 #include "../app/AppState.h"
 
+class ChronosManager;
+
 class UIManager
 {
 public:
     enum Screen : uint8_t
     {
         SCREEN_WATCH_HOME = 0,
-        SCREEN_NOTIFICATIONS,
-        SCREEN_QUICK_CONTROLS,
-        SCREEN_HEALTH,
-        SCREEN_WEATHER,
-        SCREEN_MUSIC,
-        SCREEN_SETTINGS,
+        SCREEN_HEART_RATE,
+        SCREEN_SLEEP,
+        SCREEN_ACTIVITY,
+        SCREEN_BLOOD_OXYGEN,
+        SCREEN_WORKOUT,
         SCREEN_COUNT
     };
 
     void begin(AppStateManager* appState);
     void update();
+    void attachChronos(ChronosManager* chronosManager);
 
     void showScreen(Screen screen);
     Screen getCurrentScreen() const;
 
 private:
     static void screenGestureCallback(lv_event_t* event);
+    static void openFacePickerCallback(lv_event_t* event);
+    static void selectHomeFaceCallback(lv_event_t* event);
+    static void closeFacePickerCallback(lv_event_t* event);
+    static void workoutModeCallback(lv_event_t* event);
+    static void workoutStartCallback(lv_event_t* event);
 
     void createScreens();
+    void createFacePicker();
+    void updateScreens();
+    void updatePageDots();
+    void applyHomeFace();
+    lv_obj_t* createScreen(Screen screen);
 
-    void createWatchHome();
-    void updateWatchHome();
+    struct FaceSelectionContext
+    {
+        UIManager* manager;
+        uint8_t face;
+    };
 
-    void createNotifications();
-    void updateNotifications();
-
-    void createWeather();
-    void updateWeather();
-
-    void updateActiveScreen();
+    struct WorkoutModeContext
+    {
+        UIManager* manager;
+        uint8_t mode;
+    };
 
     AppStateManager* appState = nullptr;
-
+    ChronosManager* chronos = nullptr;
     Screen currentScreen = SCREEN_WATCH_HOME;
 
-    // Screens
-    lv_obj_t* watchHome = nullptr;
-    lv_obj_t* notifications = nullptr;
-    lv_obj_t* quickControls = nullptr;
-    lv_obj_t* health = nullptr;
-    lv_obj_t* weather = nullptr;
-    lv_obj_t* music = nullptr;
-    lv_obj_t* settings = nullptr;
+    lv_obj_t* screenRoots[SCREEN_COUNT] = {};
+    lv_obj_t* facePickerRoot = nullptr;
+    lv_obj_t* pageDots[SCREEN_COUNT] = {};
+    lv_obj_t* homeFaces[6] = {};
+    lv_obj_t* faceSelectionButtons[6] = {};
+    FaceSelectionContext faceSelectionContexts[6] = {};
+    uint8_t selectedHomeFace = 0;
 
-    // WatchHome
-    lv_obj_t* dateLabel = nullptr;
-    lv_obj_t* bluetoothLabel = nullptr;
-    lv_obj_t* batteryLabel = nullptr;
-    lv_obj_t* timeLabel = nullptr;
-    lv_obj_t* periodLabel = nullptr;
+    lv_obj_t* faceClock[6] = {};
+    lv_obj_t* faceDate[6] = {};
+    lv_obj_t* faceHeart[6] = {};
+    lv_obj_t* faceSteps[6] = {};
+    lv_obj_t* faceBattery[6] = {};
+    lv_obj_t* faceWeather[6] = {};
+    lv_obj_t* faceOxygen[6] = {};
+    lv_obj_t* faceCalories[6] = {};
+    lv_obj_t* faceActivityPercent = nullptr;
+    lv_obj_t* faceActivityArc = nullptr;
+    lv_obj_t* faceAnalogHourHand = nullptr;
+    lv_obj_t* faceAnalogMinuteHand = nullptr;
+    lv_obj_t* faceAnalogSecondHand = nullptr;
+    Screen facePickerReturnScreen = SCREEN_WATCH_HOME;
 
-    lv_obj_t* heartRateLabel = nullptr;
-    lv_obj_t* weatherLabel = nullptr;
-    lv_obj_t* stepsLabel = nullptr;
-    lv_obj_t* activityLabel = nullptr;
+    lv_obj_t* homeBattery = nullptr;
+    lv_obj_t* homeConnection = nullptr;
 
-    // Notifications
-    lv_obj_t* notificationTitleLabel = nullptr;
-    lv_obj_t* notificationAppLabel = nullptr;
-    lv_obj_t* notificationMessageLabel = nullptr;
-    lv_obj_t* notificationPhoneLabel = nullptr;
-    lv_obj_t* notificationPhoneStatusLabel = nullptr;
-    lv_obj_t* notificationRefreshLabel = nullptr;
+    lv_obj_t* heartRateValue = nullptr;
+    lv_obj_t* heartRateStatus = nullptr;
+    lv_obj_t* sleepDuration = nullptr;
+    lv_obj_t* sleepStatus = nullptr;
+    lv_obj_t* activitySteps = nullptr;
+    lv_obj_t* activityCalories = nullptr;
+    lv_obj_t* oxygenValue = nullptr;
+    lv_obj_t* oxygenStatus = nullptr;
+    lv_obj_t* workoutStatus = nullptr;
+    lv_obj_t* workoutModeButtons[3] = {};
+    WorkoutModeContext workoutModeContexts[3] = {};
+    uint8_t selectedWorkoutMode = 0;
 
-    // Weather
-    lv_obj_t* weatherTemperatureLabel = nullptr;
-    lv_obj_t* weatherConditionLabel = nullptr;
-    lv_obj_t* weatherLowLabel = nullptr;
-    lv_obj_t* weatherHighLabel = nullptr;
-    lv_obj_t* weatherCityLabel = nullptr;
+    uint32_t lastUpdateMs = 0;
 };

@@ -1,9 +1,9 @@
 <screen>
-	<view width="320" height="240" style_bg_color="#color_dark_bg">
+	<view width="240" height="320" style_bg_color="#color_dark_bg">
 
 		<lv_label
-			x="12"
-			y="10"
+			x="9"
+			y="13"
 			text="MUSIC"
 			style_text_color="#color_dark_text"
 			style_text_font="font_h4"
@@ -11,8 +11,8 @@
 
 		<lv_label
 			x="0"
-			y="60"
-			width="320"
+			y="80"
+			width="240"
 			text="NOT PLAYING"
 			style_text_color="#color_dark_text"
 			style_text_font="font_h4"
@@ -21,8 +21,8 @@
 
 		<lv_label
 			x="0"
-			y="102"
-			width="320"
+			y="136"
+			width="240"
 			text="No track selected"
 			style_text_color="#color_dark_text"
 			style_text_font="font_body"
@@ -30,17 +30,17 @@
 		/>
 
 		<lv_obj
-			x="12"
-			y="155"
-			width="296"
-			height="55"
+			x="9"
+			y="207"
+			width="222"
+			height="73"
 			style_bg_color="#color_dark_panel"
 			style_radius="#radius_default"
 		>
 			<lv_label
 				x="0"
-				y="12"
-				width="296"
+				y="16"
+				width="222"
 				text="PLAY"
 				style_text_color="#color_accent"
 				style_text_font="font_h5"
@@ -48,8 +48,8 @@
 			/>
 			<lv_label
 				x="0"
-				y="35"
-				width="296"
+				y="47"
+				width="222"
 				text="PHONE MEDIA"
 				style_text_color="#color_dark_text"
 				style_text_font="font_body"

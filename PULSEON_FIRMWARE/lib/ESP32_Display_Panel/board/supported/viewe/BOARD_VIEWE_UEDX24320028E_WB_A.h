@@ -86,7 +86,7 @@
     #define ESP_PANEL_BOARD_LCD_SPI_IO_CS           (42)     // -1 if not used
     #define ESP_PANEL_BOARD_LCD_SPI_IO_DC           (41)
     #define ESP_PANEL_BOARD_LCD_SPI_MODE            (0)     // 0-3. Typically set to 0
-    #define ESP_PANEL_BOARD_LCD_SPI_CLK_HZ          (80 * 1000 * 1000)
+    #define ESP_PANEL_BOARD_LCD_SPI_CLK_HZ          (40 * 1000 * 1000)
                                                             // Should be an integer divisor of 80M, typically set to 40M
     #define ESP_PANEL_BOARD_LCD_SPI_CMD_BITS        (8)     // Typically set to 8
     #define ESP_PANEL_BOARD_LCD_SPI_PARAM_BITS      (8)     // Typically set to 8
@@ -147,7 +147,7 @@
 /**
  * @brief LCD transformation configuration
  */
-#define ESP_PANEL_BOARD_LCD_SWAP_XY             (1)     // 0/1
+#define ESP_PANEL_BOARD_LCD_SWAP_XY             (0)     // 0/1
 #define ESP_PANEL_BOARD_LCD_MIRROR_X            (0)     // 0/1
 #define ESP_PANEL_BOARD_LCD_MIRROR_Y            (0)     // 0/1
 #define ESP_PANEL_BOARD_LCD_GAP_X               (0)     // [0, ESP_PANEL_BOARD_WIDTH]
@@ -225,8 +225,8 @@
 /**
  * @brief Touch panel transformation flags
  */
-#define ESP_PANEL_BOARD_TOUCH_SWAP_XY           (1)     // 0/1
-#define ESP_PANEL_BOARD_TOUCH_MIRROR_X          (0)     // 0/1
+#define ESP_PANEL_BOARD_TOUCH_SWAP_XY           (0)     // 0/1
+#define ESP_PANEL_BOARD_TOUCH_MIRROR_X          (1)     // 0/1
 #define ESP_PANEL_BOARD_TOUCH_MIRROR_Y          (0)     // 0/1
 
 /**

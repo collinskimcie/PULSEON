@@ -9,6 +9,7 @@ void ChronosManager::begin()
     Serial.println("[CHRONOS] Initializing...");
 
     watch.setName("PULSEON");
+    watch.setScreen(CS_0x0_000_CFF);
 
     watch.setConnectionCallback(connectionCallback);
     watch.setNotificationCallback(notificationCallback);
@@ -93,6 +94,26 @@ int ChronosManager::getNotificationCount()
 String ChronosManager::getWeatherCity()
 {
     return watch.getWeatherCity();
+}
+
+String ChronosManager::getClockText(bool is24Hour)
+{
+    return watch.getTime(is24Hour ? "%H:%M" : "%I:%M");
+}
+
+String ChronosManager::getClockPeriod()
+{
+    return watch.getAmPmC();
+}
+
+String ChronosManager::getDateText()
+{
+    return watch.getTime("%a %d %b");
+}
+
+void ChronosManager::controlMusic(Control command)
+{
+    watch.musicControl(command);
 }
 
 void ChronosManager::attachAppState(AppStateManager* state)
@@ -228,6 +249,15 @@ void ChronosManager::handleConfiguration(
 
     switch (config)
     {
+        case CF_TIME:
+            appState->setClockSynced(a == 1);
+
+            if (a == 1)
+            {
+                Serial.println("[CHRONOS] Clock synchronized from phone");
+            }
+            break;
+
         case CF_HR24:
             appState->set24Hour(b != 0);
 

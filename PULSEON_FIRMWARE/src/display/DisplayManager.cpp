@@ -3,12 +3,13 @@
 #include <Arduino.h>
 #include <esp_display_panel.hpp>
 #include "draw/sw/lv_draw_sw_utils.h"
+#include "app_config.h"
 
 using namespace esp_panel::board;
 using namespace esp_panel::drivers;
 
-static constexpr int32_t DISPLAY_WIDTH = 320;
-static constexpr int32_t DISPLAY_HEIGHT = 240;
+static constexpr int32_t DISPLAY_WIDTH = PULSEON_UI_WIDTH;
+static constexpr int32_t DISPLAY_HEIGHT = PULSEON_UI_HEIGHT;
 static constexpr int32_t DISPLAY_DRAW_BUFFER_ROWS = 20;
 
 DisplayManager* DisplayManager::instance = nullptr;

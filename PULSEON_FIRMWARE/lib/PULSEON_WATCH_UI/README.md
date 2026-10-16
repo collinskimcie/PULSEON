@@ -4,7 +4,17 @@ A ready-to-use starting point for a new **LVGL Pro** project. Instead of an empt
 folder, you get a small **design system**, a set of reusable **components**, and an
 example screen — already wired up so you can start building your own UI right away.
 
-Target display: **480 × 320**, `lvgl_version` 9.5.0.
+Target display: **240 × 320 (portrait)**, `lvgl_version` 9.5.0.
+
+The firmware's live ChronosESP32 watch screens are built at runtime in
+[`src/ui/UIManager.cpp`](../../src/ui/UIManager.cpp). The XML screens in this
+project remain available as design/editor assets and are not the runtime layout.
+The live interface contains six swipeable pages: Home, Heart Rate, Sleep,
+Activity, SpO2, and Workout. Long-press any page to open the home-face picker;
+the selected face is saved across reboots. Six home faces are available:
+Analog Minimalist, Digital Bold ECG, Data-Rich, Circular Progress, Ultra
+Minimal, and Sporty Bold. Health values show placeholders until the firmware
+receives real readings from a supported sensor or phone integration.
 
 ## What's inside
 
@@ -73,5 +83,3 @@ The [**lvgl/lvgl_pro**](https://github.com/lvgl/lvgl_pro) repository is also wor
 Both humans and agents can check exactly which properties, enums, styles, and other elements are available. See
 [lv_slider.xml](https://github.com/lvgl/lvgl_pro/blob/master/lvgl_widgets_xml/v9.5.0/lv_slider.xml) as an example. 
 AI agents can clone the whole repo or get only one file.
-
-
