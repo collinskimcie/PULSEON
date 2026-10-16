@@ -46,6 +46,7 @@ void setup()
 #if PULSEON_CHRONOS_ENABLED
     chronos.attachAppState(&appState);
     chronos.begin();
+    uiManager.attachChronos(&chronos);
     Serial.println("[PULSEON] Chronos initialized.");
 #endif
 

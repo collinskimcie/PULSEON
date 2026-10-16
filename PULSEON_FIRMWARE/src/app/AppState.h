@@ -25,6 +25,7 @@ struct PulseonAppState
 
     // Watch configuration
     bool is24Hour = true;
+    bool clockSynced = false;
 
     // Navigation
     bool navigationActive = false;
@@ -74,6 +75,7 @@ public:
     );
 
     void set24Hour(bool enabled);
+    void setClockSynced(bool synced);
     void setNavigationActive(bool active);
     void setCameraReady(bool ready);
     void setSynchronized(bool synced);

@@ -19,6 +19,10 @@ public:
     int getNotificationCount();
 
     String getWeatherCity();
+    String getClockText(bool is24Hour);
+    String getClockPeriod();
+    String getDateText();
+    void controlMusic(Control command);
 
     void attachAppState(AppStateManager* appState);
 

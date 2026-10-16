@@ -69,6 +69,11 @@ void AppStateManager::set24Hour(bool enabled)
     state.is24Hour = enabled;
 }
 
+void AppStateManager::setClockSynced(bool synced)
+{
+    state.clockSynced = synced;
+}
+
 void AppStateManager::setNavigationActive(bool active)
 {
     state.navigationActive = active;

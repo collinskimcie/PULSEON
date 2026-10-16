@@ -1,7 +1,7 @@
 <screen>
 	<view
-		width="320"
-		height="240"
+		width="240"
+		height="320"
 		style_bg_color="#color_dark_bg"
 	>
 
@@ -10,24 +10,24 @@
 		<!-- ============================= -->
 
 		<lv_label
-			x="12"
-			y="8"
-			text="MON 07 OCT"
+			x="9"
+			y="11"
+			text="FRI 16 OCT"
 			style_text_color="#color_dark_text"
 			style_text_font="font_h5"
 		/>
 
 		<lv_label
-			x="230"
-			y="8"
+			x="173"
+			y="11"
 			text="BT"
 			style_text_color="#color_accent"
 			style_text_font="font_h5"
 		/>
 
 		<lv_label
-			x="270"
-			y="8"
+			x="203"
+			y="11"
 			text="86%"
 			style_text_color="#color_dark_text"
 			style_text_font="font_h5"
@@ -39,10 +39,10 @@
 
 		<lv_label
 			x="0"
-			y="52"
-			width="320"
-			height="55"
-			text="12:48"
+			y="69"
+			width="240"
+			height="73"
+			text="09:40"
 			style_text_color="#color_dark_text"
 			style_text_font="font_h1"
 			style_text_align="center"
@@ -50,9 +50,9 @@
 
 		<lv_label
 			x="0"
-			y="108"
-			width="320"
-			height="28"
+			y="144"
+			width="240"
+			height="37"
 			text="PM"
 			style_text_color="#color_accent"
 			style_text_font="font_h5"
@@ -64,25 +64,25 @@
 		<!-- ============================= -->
 
 		<lv_obj
-			x="12"
-			y="145"
-			width="144"
-			height="48"
+			x="9"
+			y="193"
+			width="108"
+			height="64"
 			style_bg_color="#color_dark_panel"
 			style_radius="#radius_default"
 		>
 
 			<lv_label
-				x="10"
-				y="5"
+				x="8"
+				y="7"
 				text="HEART RATE"
 				style_text_color="#color_dark_text"
 				style_text_font="font_body"
 			/>
 
 			<lv_label
-				x="10"
-				y="22"
+				x="8"
+				y="29"
 				text="78 BPM"
 				style_text_color="#color_danger"
 				style_text_font="font_h5"
@@ -95,25 +95,25 @@
 		<!-- ============================= -->
 
 		<lv_obj
-			x="164"
-			y="145"
-			width="144"
-			height="48"
+			x="123"
+			y="193"
+			width="108"
+			height="64"
 			style_bg_color="#color_dark_panel"
 			style_radius="#radius_default"
 		>
 
 			<lv_label
-				x="10"
-				y="5"
+				x="8"
+				y="7"
 				text="WEATHER"
 				style_text_color="#color_dark_text"
 				style_text_font="font_body"
 			/>
 
 			<lv_label
-				x="10"
-				y="22"
+				x="8"
+				y="29"
 				text="24 C"
 				style_text_color="#color_accent"
 				style_text_font="font_h5"
@@ -126,32 +126,32 @@
 		<!-- ============================= -->
 
 		<lv_label
-			x="12"
-			y="207"
+			x="9"
+			y="276"
 			text="STEPS"
 			style_text_color="#color_dark_text"
 			style_text_font="font_body"
 		/>
 
 		<lv_label
-			x="78"
-			y="204"
+			x="59"
+			y="272"
 			text="6,842"
 			style_text_color="#color_accent"
 			style_text_font="font_h5"
 		/>
 
 		<lv_label
-			x="174"
-			y="207"
+			x="131"
+			y="276"
 			text="ACTIVITY"
 			style_text_color="#color_dark_text"
 			style_text_font="font_body"
 		/>
 
 		<lv_label
-			x="245"
-			y="204"
+			x="184"
+			y="272"
 			text="72%"
 			style_text_color="#color_accent"
 			style_text_font="font_h5"

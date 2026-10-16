@@ -1,37 +1,14 @@
 <screen>
-	<view
-		width="320"
-		height="240"
-		style_bg_color="#color_dark_bg"
-	>
-
+	<view width="320" height="240" style_bg_color="#color_dark_bg">
 		<!-- ============================= -->
 		<!-- TOP STATUS BAR                -->
 		<!-- ============================= -->
 
-		<lv_label
-			x="12"
-			y="8"
-			text="MON 07 OCT"
-			style_text_color="#color_dark_text"
-			style_text_font="font_h5"
-		/>
+		<lv_label x="12" y="8" text="FRI 16 OCT" style_text_color="#color_dark_text" style_text_font="font_h5" />
 
-		<lv_label
-			x="230"
-			y="8"
-			text="BT"
-			style_text_color="#color_accent"
-			style_text_font="font_h5"
-		/>
+		<lv_label x="230" y="8" text="BT" style_text_color="#color_accent" style_text_font="font_h5" />
 
-		<lv_label
-			x="270"
-			y="8"
-			text="86%"
-			style_text_color="#color_dark_text"
-			style_text_font="font_h5"
-		/>
+		<lv_label x="270" y="8" text="86%" style_text_color="#color_dark_text" style_text_font="font_h5" />
 
 		<!-- ============================= -->
 		<!-- MAIN CLOCK                    -->
@@ -42,7 +19,7 @@
 			y="52"
 			width="320"
 			height="55"
-			text="12:48"
+			text="09:40"
 			style_text_color="#color_dark_text"
 			style_text_font="font_h1"
 			style_text_align="center"
@@ -53,7 +30,7 @@
 			y="108"
 			width="320"
 			height="28"
-			text="PM"
+			text="AM"
 			style_text_color="#color_accent"
 			style_text_font="font_h5"
 			style_text_align="center"
@@ -71,23 +48,9 @@
 			style_bg_color="#color_dark_panel"
 			style_radius="#radius_default"
 		>
+			<lv_label x="10" y="5" text="HEART RATE" style_text_color="#color_dark_text" style_text_font="font_body" />
 
-			<lv_label
-				x="10"
-				y="5"
-				text="HEART RATE"
-				style_text_color="#color_dark_text"
-				style_text_font="font_body"
-			/>
-
-			<lv_label
-				x="10"
-				y="22"
-				text="78 BPM"
-				style_text_color="#color_danger"
-				style_text_font="font_h5"
-			/>
-
+			<lv_label x="10" y="22" text="78 BPM" style_text_color="#color_danger" style_text_font="font_h5" />
 		</lv_obj>
 
 		<!-- ============================= -->
@@ -102,60 +65,21 @@
 			style_bg_color="#color_dark_panel"
 			style_radius="#radius_default"
 		>
+			<lv_label x="10" y="5" text="WEATHER" style_text_color="#color_dark_text" style_text_font="font_body" />
 
-			<lv_label
-				x="10"
-				y="5"
-				text="WEATHER"
-				style_text_color="#color_dark_text"
-				style_text_font="font_body"
-			/>
-
-			<lv_label
-				x="10"
-				y="22"
-				text="24 C"
-				style_text_color="#color_accent"
-				style_text_font="font_h5"
-			/>
-
+			<lv_label x="10" y="22" text="24 C" style_text_color="#color_accent" style_text_font="font_h5" />
 		</lv_obj>
 
 		<!-- ============================= -->
 		<!-- ACTIVITY                      -->
 		<!-- ============================= -->
 
-		<lv_label
-			x="12"
-			y="207"
-			text="STEPS"
-			style_text_color="#color_dark_text"
-			style_text_font="font_body"
-		/>
+		<lv_label x="12" y="207" text="STEPS" style_text_color="#color_dark_text" style_text_font="font_body" />
 
-		<lv_label
-			x="78"
-			y="204"
-			text="6,842"
-			style_text_color="#color_accent"
-			style_text_font="font_h5"
-		/>
+		<lv_label x="78" y="204" text="6,842" style_text_color="#color_accent" style_text_font="font_h5" />
 
-		<lv_label
-			x="174"
-			y="207"
-			text="ACTIVITY"
-			style_text_color="#color_dark_text"
-			style_text_font="font_body"
-		/>
+		<lv_label x="174" y="207" text="ACTIVITY" style_text_color="#color_dark_text" style_text_font="font_body" />
 
-		<lv_label
-			x="245"
-			y="204"
-			text="72%"
-			style_text_color="#color_accent"
-			style_text_font="font_h5"
-		/>
-
+		<lv_label x="245" y="204" text="72%" style_text_color="#color_accent" style_text_font="font_h5" />
 	</view>
 </screen>

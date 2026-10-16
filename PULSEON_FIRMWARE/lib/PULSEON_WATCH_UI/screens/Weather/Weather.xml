@@ -1,9 +1,9 @@
 <screen>
-	<view width="320" height="240" style_bg_color="#color_dark_bg">
+	<view width="240" height="320" style_bg_color="#color_dark_bg">
 
 		<lv_label
-			x="12"
-			y="10"
+			x="9"
+			y="13"
 			text="WEATHER"
 			style_text_color="#color_dark_text"
 			style_text_font="font_h4"
@@ -11,8 +11,8 @@
 
 		<lv_label
 			x="0"
-			y="55"
-			width="320"
+			y="73"
+			width="240"
 			text="24 C"
 			style_text_color="#color_accent"
 			style_text_font="font_h1"
@@ -21,8 +21,8 @@
 
 		<lv_label
 			x="0"
-			y="112"
-			width="320"
+			y="149"
+			width="240"
 			text="PARTLY CLOUDY"
 			style_text_color="#color_dark_text"
 			style_text_font="font_h5"
@@ -30,31 +30,31 @@
 		/>
 
 		<lv_obj
-			x="12"
-			y="158"
-			width="296"
-			height="50"
+			x="9"
+			y="211"
+			width="222"
+			height="67"
 			style_bg_color="#color_dark_panel"
 			style_radius="#radius_default"
 		>
 			<lv_label
-				x="12"
-				y="8"
+				x="9"
+				y="11"
 				text="LOW  18 C"
 				style_text_color="#color_dark_text"
 				style_text_font="font_body"
 			/>
 			<lv_label
-				x="174"
-				y="8"
+				x="131"
+				y="11"
 				text="HIGH  27 C"
 				style_text_color="#color_dark_text"
 				style_text_font="font_body"
 			/>
 			<lv_label
 				x="0"
-				y="29"
-				width="296"
+				y="39"
+				width="222"
 				text="NYERI"
 				style_text_color="#color_accent"
 				style_text_font="font_body"
