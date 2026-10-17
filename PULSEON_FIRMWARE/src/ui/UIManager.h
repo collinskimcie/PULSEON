@@ -25,7 +25,7 @@ public:
     void update();
     void attachChronos(ChronosManager* chronosManager);
 
-    void showScreen(Screen screen);
+    void showScreen(Screen screen, bool fade = false);
     Screen getCurrentScreen() const;
 
 private:
@@ -35,11 +35,13 @@ private:
     static void closeFacePickerCallback(lv_event_t* event);
     static void workoutModeCallback(lv_event_t* event);
     static void workoutStartCallback(lv_event_t* event);
+    static void connectionToastTimerCallback(lv_timer_t* timer);
 
     void createScreens();
     void createFacePicker();
+    void createConnectionToast();
+    void showConnectionToast(bool connected);
     void updateScreens();
-    void updatePageDots();
     void applyHomeFace();
     lv_obj_t* createScreen(Screen screen);
 
@@ -61,7 +63,9 @@ private:
 
     lv_obj_t* screenRoots[SCREEN_COUNT] = {};
     lv_obj_t* facePickerRoot = nullptr;
-    lv_obj_t* pageDots[SCREEN_COUNT] = {};
+    lv_obj_t* connectionToast = nullptr;
+    lv_obj_t* connectionToastLabel = nullptr;
+    lv_timer_t* connectionToastTimer = nullptr;
     lv_obj_t* homeFaces[6] = {};
     lv_obj_t* faceSelectionButtons[6] = {};
     FaceSelectionContext faceSelectionContexts[6] = {};
@@ -74,16 +78,7 @@ private:
     lv_obj_t* faceBattery[6] = {};
     lv_obj_t* faceWeather[6] = {};
     lv_obj_t* faceOxygen[6] = {};
-    lv_obj_t* faceCalories[6] = {};
-    lv_obj_t* faceActivityPercent = nullptr;
-    lv_obj_t* faceActivityArc = nullptr;
-    lv_obj_t* faceAnalogHourHand = nullptr;
-    lv_obj_t* faceAnalogMinuteHand = nullptr;
-    lv_obj_t* faceAnalogSecondHand = nullptr;
     Screen facePickerReturnScreen = SCREEN_WATCH_HOME;
-
-    lv_obj_t* homeBattery = nullptr;
-    lv_obj_t* homeConnection = nullptr;
 
     lv_obj_t* heartRateValue = nullptr;
     lv_obj_t* heartRateStatus = nullptr;
@@ -99,4 +94,5 @@ private:
     uint8_t selectedWorkoutMode = 0;
 
     uint32_t lastUpdateMs = 0;
+    uint32_t lastPhoneConnectionEventId = 0;
 };

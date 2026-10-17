@@ -24,3 +24,9 @@ Thumbs.db
 /PULSEON_WATCH_UI/preview-bin/
 /PULSEON_WATCH_UI/.cache.json
 /PULSEON_WATCH_UI/.mcp.json
+
+# Local root build output
+/build/
+
+# Local VS Code settings
+/.vscode/
