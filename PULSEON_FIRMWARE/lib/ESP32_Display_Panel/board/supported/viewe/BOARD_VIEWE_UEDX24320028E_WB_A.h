@@ -148,7 +148,7 @@
  * @brief LCD transformation configuration
  */
 #define ESP_PANEL_BOARD_LCD_SWAP_XY             (0)     // 0/1
-#define ESP_PANEL_BOARD_LCD_MIRROR_X            (0)     // 0/1
+#define ESP_PANEL_BOARD_LCD_MIRROR_X            (1)     // 0/1
 #define ESP_PANEL_BOARD_LCD_MIRROR_Y            (0)     // 0/1
 #define ESP_PANEL_BOARD_LCD_GAP_X               (0)     // [0, ESP_PANEL_BOARD_WIDTH]
 #define ESP_PANEL_BOARD_LCD_GAP_Y               (0)     // [0, ESP_PANEL_BOARD_HEIGHT]

@@ -94,7 +94,7 @@ bool DisplayManager::begin()
         static_cast<unsigned long>(lv_tick_get())
     );
 
-    static lv_color_t drawBuffer[DISPLAY_WIDTH * DISPLAY_DRAW_BUFFER_ROWS];
+    static lv_color16_t drawBuffer[DISPLAY_WIDTH * DISPLAY_DRAW_BUFFER_ROWS];
 
     display = lv_display_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
@@ -104,6 +104,7 @@ bool DisplayManager::begin()
         return false;
     }
 
+    lv_display_set_color_format(display, LV_COLOR_FORMAT_RGB565);
     lv_display_set_buffers(
         display,
         drawBuffer,

@@ -6,6 +6,7 @@ struct PulseonAppState
 {
     // Watch / phone connection
     bool phoneConnected = false;
+    uint32_t phoneConnectionEventId = 0;
     uint8_t phoneBattery = 0;
     bool phoneCharging = false;
 

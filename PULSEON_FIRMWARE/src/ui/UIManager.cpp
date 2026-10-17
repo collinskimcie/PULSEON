@@ -1,10 +1,11 @@
 #include "UIManager.h"
 
-#include <math.h>
+#include <cmath>
 #include <stdint.h>
 #include <time.h>
 #include <Preferences.h>
 
+#include "app_config.h"
 #include "PULSEON_WATCH_UI.h"
 
 namespace
@@ -13,6 +14,10 @@ constexpr int32_t DISPLAY_WIDTH = 240;
 constexpr int32_t DISPLAY_HEIGHT = 320;
 constexpr int32_t MARGIN = 16;
 constexpr int32_t CONTENT_WIDTH = DISPLAY_WIDTH - (MARGIN * 2);
+constexpr uint8_t DEMO_HEART_RATE_VALUES[] = {
+    78, 80, 82, 84, 83, 81, 79, 77, 75, 73, 72, 74, 76
+};
+constexpr int32_t FACE_CIRCLE_TOP = 40;
 
 const lv_color_t UI_COLOR_BACKGROUND = lv_color_hex(0x090A0E);
 const lv_color_t UI_COLOR_CARD = lv_color_hex(0x15161C);
@@ -22,9 +27,30 @@ const lv_color_t UI_COLOR_MUTED = lv_color_hex(0xA8A3AB);
 const lv_color_t UI_COLOR_ACCENT = lv_color_hex(0xFF5D6C);
 const lv_color_t UI_COLOR_ACCENT_DARK = lv_color_hex(0x54252D);
 const lv_color_t UI_COLOR_GOOD = lv_color_hex(0x75D6B1);
-lv_point_precise_t analogHourPoints[2];
-lv_point_precise_t analogMinutePoints[2];
-lv_point_precise_t analogSecondPoints[2];
+const lv_color_t UI_COLOR_AMBER = lv_color_hex(0xFFC66D);
+const lv_color_t UI_COLOR_TOPO = lv_color_hex(0x3A8997);
+const lv_color_t UI_COLOR_CIRCUIT = lv_color_hex(0xFF796D);
+const lv_color_t UI_COLOR_PRISM = lv_color_hex(0xB8A5FF);
+lv_obj_t* homeFacePanels[6] = {};
+
+int32_t faceChildY(lv_obj_t* parent, int32_t y)
+{
+    for (lv_obj_t* facePanel : homeFacePanels)
+    {
+        if (facePanel == parent)
+        {
+            return y - FACE_CIRCLE_TOP;
+        }
+    }
+    return y;
+}
+
+uint16_t getDemoHeartRate(uint32_t now)
+{
+    const size_t sample = (now / 1000) %
+        (sizeof(DEMO_HEART_RATE_VALUES) / sizeof(DEMO_HEART_RATE_VALUES[0]));
+    return DEMO_HEART_RATE_VALUES[sample];
+}
 
 lv_obj_t* createLabel(
     lv_obj_t* parent,
@@ -40,7 +66,7 @@ lv_obj_t* createLabel(
 {
     lv_obj_t* label = lv_label_create(parent);
     lv_label_set_text(label, text);
-    lv_obj_set_pos(label, x, y);
+    lv_obj_set_pos(label, x, faceChildY(parent, y));
     lv_obj_set_size(label, width, height);
     lv_obj_set_style_text_font(label, font, 0);
     lv_obj_set_style_text_color(label, color, 0);
@@ -61,7 +87,7 @@ lv_obj_t* createCard(
 )
 {
     lv_obj_t* card = lv_obj_create(parent);
-    lv_obj_set_pos(card, x, y);
+    lv_obj_set_pos(card, x, faceChildY(parent, y));
     lv_obj_set_size(card, width, height);
     lv_obj_set_style_bg_color(card, color, 0);
     lv_obj_set_style_bg_opa(card, LV_OPA_COVER, 0);
@@ -73,27 +99,51 @@ lv_obj_t* createCard(
     return card;
 }
 
-lv_obj_t* createFacePanel(lv_obj_t* parent)
+lv_obj_t* createFacePanel(lv_obj_t* parent, uint8_t index)
 {
     lv_obj_t* panel = lv_obj_create(parent);
-    lv_obj_set_size(panel, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    lv_obj_set_pos(panel, 0, FACE_CIRCLE_TOP);
+    lv_obj_set_size(panel, DISPLAY_WIDTH, DISPLAY_WIDTH);
     lv_obj_set_style_bg_opa(panel, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(panel, 0, 0);
-    lv_obj_set_style_radius(panel, 0, 0);
+    lv_obj_set_style_radius(panel, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_pad_all(panel, 0, 0);
     lv_obj_clear_flag(panel, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(panel, LV_OBJ_FLAG_EVENT_BUBBLE);
+    homeFacePanels[index] = panel;
     return panel;
 }
 
-lv_obj_t* createFaceLine(lv_obj_t* parent, const lv_point_precise_t* points, uint16_t count, lv_color_t color, int32_t width)
+lv_obj_t* createWatchFaceFrame(lv_obj_t* parent, lv_color_t borderColor)
 {
-    lv_obj_t* line = lv_line_create(parent);
-    lv_line_set_points(line, points, count);
-    lv_obj_set_style_line_color(line, color, 0);
-    lv_obj_set_style_line_width(line, width, 0);
-    lv_obj_set_style_line_rounded(line, true, 0);
-    return line;
+    lv_obj_t* frame = createCard(
+        parent,
+        7,
+        47,
+        226,
+        226,
+        UI_COLOR_BACKGROUND,
+        LV_RADIUS_CIRCLE
+    );
+    lv_obj_set_style_bg_opa(frame, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_color(frame, borderColor, 0);
+    lv_obj_set_style_border_width(frame, 2, 0);
+    return frame;
+}
+
+lv_obj_t* createMetricPill(
+    lv_obj_t* parent,
+    int32_t x,
+    int32_t y,
+    int32_t width,
+    const char* text,
+    lv_color_t color,
+    lv_color_t background
+)
+{
+    lv_obj_t* pill = createCard(parent, x, y, width, 26, background, 13);
+    lv_obj_set_style_bg_opa(pill, 190, 0);
+    return createLabel(pill, text, 4, 2, width - 8, 22, font_h5, color, LV_TEXT_ALIGN_CENTER);
 }
 
 void createBadge(lv_obj_t* parent, const char* text, int32_t y)
@@ -119,18 +169,6 @@ void styleButtonLabel(lv_obj_t* label)
     lv_obj_add_flag(label, LV_OBJ_FLAG_EVENT_BUBBLE);
 }
 
-void logLvglMemory(const char* stage)
-{
-    lv_mem_monitor_t memory = {};
-    lv_mem_monitor(&memory);
-    Serial.printf(
-        "[UI][LVGL-HEAP] %s: free=%u largest=%u used=%u%%\n",
-        stage,
-        static_cast<unsigned>(memory.free_size),
-        static_cast<unsigned>(memory.free_biggest_size),
-        static_cast<unsigned>(memory.used_pct)
-    );
-}
 }
 
 void UIManager::begin(AppStateManager* state)
@@ -154,15 +192,10 @@ void UIManager::begin(AppStateManager* state)
     }
 
     Serial.println("[UI] Initializing six-screen health interface...");
-    Serial.println("[UI] Initializing generated assets...");
     PULSEON_WATCH_UI_init(nullptr);
-    Serial.println("[UI] Generated assets initialized.");
     createScreens();
-    Serial.println("[UI] Screens created.");
     showScreen(SCREEN_WATCH_HOME);
-    Serial.println("[UI] Home screen loaded.");
     updateScreens();
-    Serial.println("[UI] Screen data updated.");
     lastUpdateMs = millis();
     Serial.println("[UI] Six-screen health interface initialized");
 }
@@ -171,16 +204,12 @@ void UIManager::createScreens()
 {
     for (uint8_t index = 0; index < SCREEN_COUNT; ++index)
     {
-        Serial.printf("[UI] Creating screen %u...\n", index);
-        logLvglMemory("before screen");
         screenRoots[index] = createScreen(static_cast<Screen>(index));
-        logLvglMemory("after screen");
         if (screenRoots[index] == nullptr)
         {
             Serial.printf("[UI] ERROR: Could not create screen %u\n", index);
             continue;
         }
-        Serial.printf("[UI] Screen %u created.\n", index);
 
         lv_obj_add_event_cb(
             screenRoots[index],
@@ -197,10 +226,80 @@ void UIManager::createScreens()
         );
     }
 
-    Serial.println("[UI] Creating face picker...");
     createFacePicker();
-    Serial.println("[UI] Applying home face...");
     applyHomeFace();
+    createConnectionToast();
+}
+
+void UIManager::createConnectionToast()
+{
+    connectionToast = lv_obj_create(lv_layer_top());
+    if (connectionToast == nullptr)
+    {
+        Serial.println("[UI] ERROR: Could not create connection notification");
+        return;
+    }
+
+    lv_obj_set_size(connectionToast, 184, 36);
+    lv_obj_align(connectionToast, LV_ALIGN_TOP_MID, 0, 8);
+    lv_obj_set_style_bg_color(connectionToast, UI_COLOR_CARD, 0);
+    lv_obj_set_style_bg_opa(connectionToast, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_color(connectionToast, UI_COLOR_GOOD, 0);
+    lv_obj_set_style_border_width(connectionToast, 1, 0);
+    lv_obj_set_style_radius(connectionToast, 18, 0);
+    lv_obj_set_style_pad_all(connectionToast, 0, 0);
+    lv_obj_clear_flag(connectionToast, LV_OBJ_FLAG_SCROLLABLE);
+    connectionToastLabel = createLabel(
+        connectionToast,
+        "Phone connected",
+        8,
+        7,
+        168,
+        22,
+        font_h5,
+        UI_COLOR_GOOD,
+        LV_TEXT_ALIGN_CENTER
+    );
+    lv_obj_add_flag(connectionToast, LV_OBJ_FLAG_HIDDEN);
+
+    connectionToastTimer = lv_timer_create(connectionToastTimerCallback, 2500, this);
+    if (connectionToastTimer == nullptr)
+    {
+        Serial.println("[UI] ERROR: Could not create connection notification timer");
+        return;
+    }
+    lv_timer_pause(connectionToastTimer);
+}
+
+void UIManager::showConnectionToast(bool connected)
+{
+    if (connectionToast == nullptr ||
+        connectionToastLabel == nullptr ||
+        connectionToastTimer == nullptr)
+    {
+        return;
+    }
+
+    lv_label_set_text(
+        connectionToastLabel,
+        connected ? "Phone connected" : "Phone disconnected"
+    );
+    const lv_color_t color = connected ? UI_COLOR_GOOD : UI_COLOR_ACCENT;
+    lv_obj_set_style_border_color(connectionToast, color, 0);
+    lv_obj_set_style_text_color(connectionToastLabel, color, 0);
+    lv_obj_clear_flag(connectionToast, LV_OBJ_FLAG_HIDDEN);
+    lv_timer_reset(connectionToastTimer);
+    lv_timer_resume(connectionToastTimer);
+}
+
+void UIManager::connectionToastTimerCallback(lv_timer_t* timer)
+{
+    UIManager* ui = static_cast<UIManager*>(lv_timer_get_user_data(timer));
+    if (ui != nullptr && ui->connectionToast != nullptr)
+    {
+        lv_obj_add_flag(ui->connectionToast, LV_OBJ_FLAG_HIDDEN);
+    }
+    lv_timer_pause(timer);
 }
 
 void UIManager::createFacePicker()
@@ -223,21 +322,21 @@ void UIManager::createFacePicker()
 
     const char* names[] =
     {
-        "ANALOG MINIMALIST",
-        "DIGITAL BOLD ECG",
-        "DATA-RICH",
-        "CIRCULAR PROGRESS",
-        "ULTRA MINIMAL",
-        "SPORTY BOLD"
+        "BRUTALIST V2",
+        "DOT MATRIX V2",
+        "TOPO V2",
+        "GLASSMORPH V2",
+        "CIRCUIT BLUEPRINT",
+        "HOLOGRAPHIC PRISM"
     };
     const char* descriptions[] =
     {
-        "Classic dial and pulse",
-        "Large digital time",
-        "Time, steps, heart, weather",
-        "Daily step goal rings",
-        "Quiet, uncluttered clock",
-        "Bold time and health stats"
+        "Cracked steel digital",
+        "Amber LED display",
+        "Contour-map style",
+        "Soft glass and color",
+        "Technical circuit board",
+        "Prismatic digital time"
     };
 
     for (uint8_t face = 0; face < 6; ++face)
@@ -290,105 +389,156 @@ lv_obj_t* UIManager::createScreen(Screen screen)
         {
             for (uint8_t face = 0; face < 6; ++face)
             {
-                homeFaces[face] = createFacePanel(root);
+                homeFaces[face] = createFacePanel(root, face);
             }
 
-            lv_obj_t* analog = homeFaces[0];
-            lv_obj_t* analogRing = createCard(analog, 16, 61, 208, 208, UI_COLOR_BACKGROUND, LV_RADIUS_CIRCLE);
-            lv_obj_set_style_bg_opa(analogRing, LV_OPA_TRANSP, 0);
-            lv_obj_set_style_border_color(analogRing, UI_COLOR_CARD_ALT, 0);
-            lv_obj_set_style_border_width(analogRing, 3, 0);
-            for (uint8_t tick = 0; tick < 12; ++tick)
+            lv_obj_t* brutalist = homeFaces[0];
+            lv_obj_set_style_bg_color(brutalist, lv_color_hex(0x050608), 0);
+            lv_obj_set_style_bg_opa(brutalist, LV_OPA_COVER, 0);
+            createWatchFaceFrame(brutalist, lv_color_hex(0x858A91));
+            faceClock[0] = createLabel(brutalist, "--:--", 5, 112, 230, 78, font_h1, lv_color_hex(0xD9DDE1), LV_TEXT_ALIGN_CENTER);
+            createCard(brutalist, 36, 115, 2, 55, lv_color_hex(0x777D84), 0);
+            createCard(brutalist, 76, 176, 34, 2, lv_color_hex(0x777D84), 0);
+            createCard(brutalist, 157, 119, 2, 44, lv_color_hex(0x777D84), 0);
+            createCard(brutalist, 186, 166, 22, 2, lv_color_hex(0x777D84), 0);
+            faceHeart[0] = createLabel(brutalist, "-- BPM", 24, 211, 56, 20, font_body, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+            faceBattery[0] = createLabel(brutalist, "--%", 84, 211, 44, 20, font_body, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+            faceDate[0] = createLabel(brutalist, "--", 132, 211, 84, 20, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
+
+            lv_obj_t* dotMatrix = homeFaces[1];
+            lv_obj_set_style_bg_color(dotMatrix, lv_color_hex(0x050505), 0);
+            lv_obj_set_style_bg_opa(dotMatrix, LV_OPA_COVER, 0);
+            createWatchFaceFrame(dotMatrix, lv_color_hex(0x5A4B32));
+            const uint8_t heartRows[] = {0x36, 0x7F, 0x7F, 0x3E, 0x1C, 0x08};
+            for (uint8_t row = 0; row < 6; ++row)
             {
-                const float angle = (static_cast<float>(tick) * 30.0f - 90.0f) * 0.0174532925f;
-                const int32_t x = 120 + static_cast<int32_t>(cosf(angle) * 83.0f) - 2;
-                const int32_t y = 165 + static_cast<int32_t>(sinf(angle) * 83.0f) - 2;
-                createCard(analog, x, y, 4, 4, UI_COLOR_MUTED, LV_RADIUS_CIRCLE);
+                for (uint8_t column = 0; column < 7; ++column)
+                {
+                    if ((heartRows[row] & (1U << (6 - column))) != 0)
+                    {
+                        createCard(dotMatrix, 92 + column * 8, 84 + row * 6, 4, 4, UI_COLOR_AMBER, LV_RADIUS_CIRCLE);
+                    }
+                }
             }
-            const lv_point_precise_t handDefault[2] = {{120, 165}, {120, 107}};
-            faceAnalogHourHand = createFaceLine(analog, handDefault, 2, UI_COLOR_TEXT, 4);
-            faceAnalogMinuteHand = createFaceLine(analog, handDefault, 2, UI_COLOR_MUTED, 2);
-            faceAnalogSecondHand = createFaceLine(analog, handDefault, 2, UI_COLOR_ACCENT, 1);
-            createCard(analog, 115, 160, 10, 10, UI_COLOR_ACCENT, LV_RADIUS_CIRCLE);
-            faceClock[0] = createLabel(analog, "--:--", 91, 72, 58, 18, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            faceHeart[0] = createLabel(analog, "-- BPM", 58, 205, 124, 24, font_h5, UI_COLOR_ACCENT, LV_TEXT_ALIGN_CENTER);
-            faceDate[0] = createLabel(analog, "WAITING FOR PHONE TIME", 20, 282, 200, 20, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            createLabel(analog, "PulseOn", 85, 252, 70, 16, font_body, UI_COLOR_ACCENT, LV_TEXT_ALIGN_CENTER);
+            faceClock[1] = createLabel(dotMatrix, "--:--", 6, 127, 228, 72, font_h1, UI_COLOR_AMBER, LV_TEXT_ALIGN_CENTER);
+            faceHeart[1] = createLabel(dotMatrix, "-- BPM", 62, 201, 116, 23, font_h4, UI_COLOR_AMBER, LV_TEXT_ALIGN_CENTER);
+            faceSteps[1] = createLabel(dotMatrix, "---- STEPS", 42, 232, 156, 22, font_h5, UI_COLOR_AMBER, LV_TEXT_ALIGN_CENTER);
 
-            lv_obj_t* digital = homeFaces[1];
-            faceClock[1] = createLabel(digital, "--:--", 8, 121, 224, 72, font_h1, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            createLabel(digital, "LIVE ECG", 8, 202, 224, 24, font_h5, UI_COLOR_ACCENT, LV_TEXT_ALIGN_CENTER);
-            const lv_point_precise_t ecgPoints[] =
+            lv_obj_t* topo = homeFaces[2];
+            lv_obj_set_style_bg_color(topo, lv_color_hex(0x061016), 0);
+            lv_obj_set_style_bg_opa(topo, LV_OPA_COVER, 0);
+            createWatchFaceFrame(topo, UI_COLOR_TOPO);
+            const int32_t topoSizes[] = {208, 178, 146, 112, 76};
+            for (uint8_t ring = 0; ring < 5; ++ring)
             {
-                {12, 178}, {32, 178}, {41, 169}, {47, 188}, {56, 138},
-                {66, 213}, {76, 177}, {92, 177}, {101, 169}, {109, 188},
-                {119, 138}, {129, 213}, {139, 177}, {157, 177}, {166, 169},
-                {174, 188}, {184, 145}, {194, 207}, {204, 178}, {228, 178}
-            };
-            createFaceLine(digital, ecgPoints, sizeof(ecgPoints) / sizeof(ecgPoints[0]), UI_COLOR_ACCENT, 2);
-            faceDate[1] = createLabel(digital, "WAITING FOR PHONE TIME", 20, 268, 200, 20, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
+                lv_obj_t* contour = createCard(
+                    topo,
+                    (DISPLAY_WIDTH - topoSizes[ring]) / 2,
+                    58 + (208 - topoSizes[ring]) / 2,
+                    topoSizes[ring],
+                    topoSizes[ring],
+                    UI_COLOR_BACKGROUND,
+                    LV_RADIUS_CIRCLE
+                );
+                lv_obj_set_style_bg_opa(contour, LV_OPA_TRANSP, 0);
+                lv_obj_set_style_border_color(contour, lv_color_hex(0x163644), 0);
+                lv_obj_set_style_border_width(contour, 1, 0);
+            }
+            createLabel(topo, "ELEV 214M", 52, 83, 136, 17, font_body, UI_COLOR_TOPO, LV_TEXT_ALIGN_CENTER);
+            faceClock[2] = createLabel(topo, "--:--", 9, 126, 222, 78, font_h1, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+            faceWeather[2] = createLabel(topo, "NW 12°", 38, 207, 84, 22, font_body, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+            faceBattery[2] = createLabel(topo, "82%", 126, 207, 76, 22, font_body, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+            faceSteps[2] = createLabel(topo, "---- STEPS", 42, 232, 156, 18, font_body, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+            faceDate[2] = createLabel(topo, "--", 64, 250, 112, 16, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
 
-            lv_obj_t* data = homeFaces[2];
-            faceClock[2] = createLabel(data, "--:--", 16, 39, 208, 50, font_h1, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            faceSteps[2] = createLabel(data, "-- STEPS", 22, 111, 90, 32, font_h5, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            createCard(data, 119, 104, 1, 54, UI_COLOR_CARD_ALT, 0);
-            createCard(data, 22, 157, 196, 1, UI_COLOR_CARD_ALT, 0);
-            faceHeart[2] = createLabel(data, "-- BPM", 22, 182, 90, 30, font_h5, UI_COLOR_ACCENT, LV_TEXT_ALIGN_CENTER);
-            faceWeather[2] = createLabel(data, "--°", 128, 182, 88, 30, font_h5, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            createCard(data, 119, 169, 1, 54, UI_COLOR_CARD_ALT, 0);
-            faceDate[2] = createLabel(data, "WAITING FOR PHONE TIME", 20, 261, 200, 20, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
+            lv_obj_t* glass = homeFaces[3];
+            lv_obj_set_style_bg_color(glass, lv_color_hex(0x65759A), 0);
+            lv_obj_set_style_bg_grad_color(glass, lv_color_hex(0xA1A9C1), 0);
+            lv_obj_set_style_bg_grad_dir(glass, LV_GRAD_DIR_VER, 0);
+            lv_obj_set_style_bg_opa(glass, LV_OPA_COVER, 0);
+            createWatchFaceFrame(glass, lv_color_hex(0xC7D5F2));
+            lv_obj_t* glassCard = createCard(glass, 32, 88, 176, 144, lv_color_hex(0xE3EAFB), 48);
+            lv_obj_set_style_bg_opa(glassCard, 56, 0);
+            lv_obj_set_style_border_color(glassCard, lv_color_hex(0xE7EEFF), 0);
+            lv_obj_set_style_border_opa(glassCard, 110, 0);
+            lv_obj_set_style_border_width(glassCard, 1, 0);
+            faceClock[3] = createLabel(glass, "--:--", 5, 118, 230, 80, font_h1, lv_color_hex(0xF4F6FF), LV_TEXT_ALIGN_CENTER);
+            faceHeart[3] = createMetricPill(glass, 52, 194, 136, "-- BPM", UI_COLOR_TEXT, lv_color_hex(0x66799C));
+            faceWeather[3] = createMetricPill(glass, 43, 229, 154, "--°", UI_COLOR_TEXT, lv_color_hex(0x66799C));
+            faceDate[3] = createLabel(glass, "--", 64, 252, 112, 16, font_body, lv_color_hex(0xE7EDFC), LV_TEXT_ALIGN_CENTER);
 
-            lv_obj_t* rings = homeFaces[3];
-            createBadge(rings, "MOVE", 36);
-            faceActivityArc = lv_arc_create(rings);
-            lv_obj_set_pos(faceActivityArc, 29, 75);
-            lv_obj_set_size(faceActivityArc, 182, 182);
-            lv_arc_set_range(faceActivityArc, 0, 100);
-            lv_arc_set_bg_angles(faceActivityArc, 135, 45);
-            lv_arc_set_angles(faceActivityArc, 135, 135);
-            lv_arc_set_value(faceActivityArc, 0);
-            lv_obj_set_style_bg_opa(faceActivityArc, LV_OPA_TRANSP, LV_PART_MAIN);
-            lv_obj_set_style_arc_color(faceActivityArc, UI_COLOR_CARD_ALT, LV_PART_MAIN);
-            lv_obj_set_style_arc_width(faceActivityArc, 5, LV_PART_MAIN);
-            lv_obj_set_style_arc_color(faceActivityArc, UI_COLOR_ACCENT, LV_PART_INDICATOR);
-            lv_obj_set_style_arc_width(faceActivityArc, 5, LV_PART_INDICATOR);
-            lv_obj_set_style_opa(faceActivityArc, LV_OPA_TRANSP, LV_PART_KNOB);
-            lv_obj_clear_flag(faceActivityArc, LV_OBJ_FLAG_CLICKABLE);
-            lv_obj_t* innerRing = createCard(rings, 42, 88, 156, 156, UI_COLOR_BACKGROUND, LV_RADIUS_CIRCLE);
-            lv_obj_set_style_bg_opa(innerRing, LV_OPA_TRANSP, 0);
-            lv_obj_set_style_border_color(innerRing, UI_COLOR_GOOD, 0);
-            lv_obj_set_style_border_width(innerRing, 3, 0);
-            faceActivityPercent = createLabel(rings, "--%", 42, 135, 156, 48, font_h1, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            faceSteps[3] = createLabel(rings, "-- steps", 45, 184, 150, 24, font_h5, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            createLabel(rings, "GOAL 10,000 STEPS", 20, 273, 200, 20, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-
-            lv_obj_t* minimal = homeFaces[4];
-            faceClock[4] = createLabel(minimal, "--:--", 8, 124, 224, 74, font_h1, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            faceDate[4] = createLabel(minimal, "WAITING FOR PHONE TIME", 20, 208, 200, 20, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            createCard(minimal, 115, 257, 10, 10, UI_COLOR_ACCENT, LV_RADIUS_CIRCLE);
-            createLabel(minimal, "PulseOn", 85, 282, 70, 16, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-
-            lv_obj_t* sport = homeFaces[5];
-            faceClock[5] = createLabel(sport, "--:--", 8, 68, 224, 92, font_h1, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            faceCalories[5] = createLabel(sport, "-- KCAL", 28, 172, 88, 38, font_h4, UI_COLOR_ACCENT, LV_TEXT_ALIGN_CENTER);
-            faceOxygen[5] = createLabel(sport, "--% SpO2", 124, 172, 92, 38, font_h4, UI_COLOR_ACCENT, LV_TEXT_ALIGN_CENTER);
-            const lv_point_precise_t sportPulse[] =
+            lv_obj_t* circuit = homeFaces[4];
+            lv_obj_set_style_bg_color(circuit, lv_color_hex(0x030813), 0);
+            lv_obj_set_style_bg_opa(circuit, LV_OPA_COVER, 0);
+            createWatchFaceFrame(circuit, lv_color_hex(0x293E66));
+            constexpr int32_t FACE_CENTER = DISPLAY_WIDTH / 2;
+            constexpr int32_t FACE_RADIUS = DISPLAY_WIDTH / 2;
+            for (int32_t gridX = 48; gridX <= 192; gridX += 18)
             {
-                {33, 245}, {79, 245}, {88, 240}, {96, 257}, {105, 228},
-                {115, 264}, {124, 245}, {207, 245}
-            };
-            createFaceLine(sport, sportPulse, sizeof(sportPulse) / sizeof(sportPulse[0]), UI_COLOR_ACCENT, 2);
-            faceDate[5] = createLabel(sport, "WAITING FOR PHONE TIME", 20, 276, 200, 20, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
+                const int32_t offsetX = gridX - FACE_CENTER;
+                const int32_t halfHeight = static_cast<int32_t>(
+                    std::sqrt(FACE_RADIUS * FACE_RADIUS - offsetX * offsetX)
+                ) - 2;
+                createCard(
+                    circuit,
+                    gridX,
+                    FACE_CIRCLE_TOP + FACE_CENTER - halfHeight,
+                    1,
+                    halfHeight * 2,
+                    lv_color_hex(0x101D35),
+                    0
+                );
+            }
+            for (int32_t gridY = 64; gridY <= 256; gridY += 18)
+            {
+                const int32_t offsetY = gridY - FACE_CIRCLE_TOP - FACE_CENTER;
+                const int32_t halfWidth = static_cast<int32_t>(
+                    std::sqrt(FACE_RADIUS * FACE_RADIUS - offsetY * offsetY)
+                ) - 2;
+                createCard(
+                    circuit,
+                    FACE_CENTER - halfWidth,
+                    gridY,
+                    halfWidth * 2,
+                    1,
+                    lv_color_hex(0x101D35),
+                    0
+                );
+            }
+            createCard(circuit, 44, 96, 46, 2, UI_COLOR_CIRCUIT, 0);
+            createCard(circuit, 44, 96, 2, 24, UI_COLOR_CIRCUIT, 0);
+            createCard(circuit, 90, 96, 2, 16, UI_COLOR_CIRCUIT, 0);
+            createCard(circuit, 150, 213, 42, 2, UI_COLOR_CIRCUIT, 0);
+            createCard(circuit, 190, 190, 2, 25, UI_COLOR_CIRCUIT, 0);
+            createLabel(circuit, "PWR 3.3V", 78, 83, 84, 18, font_body, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+            createLabel(circuit, "CLK 32kHz", 78, 101, 84, 18, font_body, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+            faceClock[4] = createLabel(circuit, "--:--", 8, 132, 224, 66, font_h1, lv_color_hex(0xE6E9F0), LV_TEXT_ALIGN_CENTER);
+            faceHeart[4] = createMetricPill(circuit, 55, 207, 130, "-- BPM", UI_COLOR_TEXT, lv_color_hex(0x17253C));
+            createLabel(circuit, "SIGNAL OK", 55, 238, 130, 18, font_body, UI_COLOR_GOOD, LV_TEXT_ALIGN_CENTER);
+            faceDate[4] = createLabel(circuit, "--", 64, 254, 112, 16, font_body, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+
+            lv_obj_t* prism = homeFaces[5];
+            lv_obj_set_style_bg_color(prism, lv_color_hex(0x030309), 0);
+            lv_obj_set_style_bg_opa(prism, LV_OPA_COVER, 0);
+            createWatchFaceFrame(prism, lv_color_hex(0x25233B));
+            lv_obj_t* prismBlue = createLabel(prism, "--:--", 9, 125, 224, 76, font_h1, lv_color_hex(0x5F8FFF), LV_TEXT_ALIGN_CENTER);
+            lv_obj_set_pos(prismBlue, 11, 123);
+            lv_obj_t* prismPink = createLabel(prism, "--:--", 9, 125, 224, 76, font_h1, lv_color_hex(0xFF86D2), LV_TEXT_ALIGN_CENTER);
+            lv_obj_set_pos(prismPink, 7, 127);
+            faceClock[5] = createLabel(prism, "--:--", 9, 125, 224, 76, font_h1, lv_color_hex(0xDDE8FF), LV_TEXT_ALIGN_CENTER);
+            faceHeart[5] = createMetricPill(prism, 56, 197, 128, "-- BPM", UI_COLOR_TEXT, lv_color_hex(0x454267));
+            faceOxygen[5] = createLabel(prism, "--% O2", 66, 227, 108, 20, font_h5, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+            faceDate[5] = createLabel(prism, "UV 3  MODERATE", 48, 245, 144, 16, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
 
             break;
         }
         case SCREEN_HEART_RATE:
         {
             createBadge(root, "HEART RATE", 26);
-            heartRateValue = createLabel(root, "-- BPM", 12, 91, 216, 66, font_h1, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            heartRateStatus = createLabel(root, "No live reading", MARGIN, 158, CONTENT_WIDTH, 24, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
+            heartRateValue = createLabel(root, "--", 12, 91, 216, 66, font_h1, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+            heartRateStatus = createLabel(root, "No sensor", MARGIN, 158, CONTENT_WIDTH, 24, font_h5, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
             createCard(root, MARGIN, 207, CONTENT_WIDTH, 1, UI_COLOR_CARD_ALT, 0);
-            createLabel(root, "Heart-rate data needs a supported sensor.", 28, 222, 184, 42, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
+            createLabel(root, "Connect a sensor for heart rate.", 28, 222, 184, 42, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
             break;
         }
         case SCREEN_SLEEP:
@@ -405,7 +555,7 @@ lv_obj_t* UIManager::createScreen(Screen screen)
                 createLabel(root, "--", 172, y, 42, 22, font_h5, UI_COLOR_MUTED, LV_TEXT_ALIGN_RIGHT);
                 createCard(root, 24, y + 23, CONTENT_WIDTH, 5, UI_COLOR_CARD_ALT, 3);
             }
-            createLabel(root, "Sleep stages appear when data is available.", MARGIN, 294, CONTENT_WIDTH, 18, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
+            createLabel(root, "Stages appear with sleep data.", MARGIN, 294, CONTENT_WIDTH, 18, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
             break;
         }
         case SCREEN_ACTIVITY:
@@ -437,7 +587,7 @@ lv_obj_t* UIManager::createScreen(Screen screen)
             createLabel(root, "Blood oxygen", MARGIN, 167, CONTENT_WIDTH, 26, font_h5, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
             lv_obj_t* status = createCard(root, 32, 218, 176, 42, UI_COLOR_CARD);
             oxygenStatus = createLabel(status, "No reading available", 8, 10, 160, 22, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            createLabel(root, "A supported sensor must provide a reading.", 28, 273, 184, 36, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
+            createLabel(root, "Connect a sensor for a reading.", 28, 273, 184, 36, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
             break;
         }
         case SCREEN_WORKOUT:
@@ -482,41 +632,10 @@ lv_obj_t* UIManager::createScreen(Screen screen)
             return nullptr;
     }
 
-    if (screen == SCREEN_WATCH_HOME)
-    {
-        homeConnection = createLabel(
-            root,
-            "BT  OFFLINE",
-            MARGIN,
-            18,
-            150,
-            22,
-            font_h5,
-            UI_COLOR_MUTED
-        );
-        homeBattery = createLabel(
-            root,
-            "--%",
-            DISPLAY_WIDTH - MARGIN - 50,
-            18,
-            50,
-            22,
-            font_h5,
-            UI_COLOR_ACCENT,
-            LV_TEXT_ALIGN_RIGHT
-        );
-    }
-
-    for (uint8_t index = 0; index < SCREEN_COUNT; ++index)
-    {
-        const int32_t dotX = 91 + static_cast<int32_t>(index) * 12;
-        pageDots[index] = createCard(root, dotX, DISPLAY_HEIGHT - 10, 5, 5, UI_COLOR_CARD_ALT, LV_RADIUS_CIRCLE);
-    }
-
     return root;
 }
 
-void UIManager::showScreen(Screen screen)
+void UIManager::showScreen(Screen screen, bool fade)
 {
     if (screen >= SCREEN_COUNT || screenRoots[screen] == nullptr)
     {
@@ -529,22 +648,19 @@ void UIManager::showScreen(Screen screen)
         appState->setActiveScreen(static_cast<uint8_t>(screen));
     }
 
-    lv_screen_load(screenRoots[screen]);
-    updatePageDots();
-}
-
-void UIManager::updatePageDots()
-{
-    for (uint8_t index = 0; index < SCREEN_COUNT; ++index)
+    if (fade)
     {
-        if (pageDots[index] != nullptr)
-        {
-            lv_obj_set_style_bg_color(
-                pageDots[index],
-                index == currentScreen ? UI_COLOR_ACCENT : UI_COLOR_CARD_ALT,
-                0
-            );
-        }
+        lv_screen_load_anim(
+            screenRoots[screen],
+            LV_SCREEN_LOAD_ANIM_FADE_ON,
+            200,
+            0,
+            false
+        );
+    }
+    else
+    {
+        lv_screen_load(screenRoots[screen]);
     }
 }
 
@@ -615,7 +731,7 @@ void UIManager::selectHomeFaceCallback(lv_event_t* event)
         }
     }
 
-    ui->showScreen(ui->facePickerReturnScreen);
+    ui->showScreen(ui->facePickerReturnScreen, true);
 }
 
 void UIManager::closeFacePickerCallback(lv_event_t* event)
@@ -679,7 +795,7 @@ void UIManager::workoutStartCallback(lv_event_t* event)
     UIManager* ui = static_cast<UIManager*>(lv_event_get_user_data(event));
     if (ui != nullptr)
     {
-        lv_label_set_text(ui->workoutStatus, "Tracking needs a supported sensor");
+        lv_label_set_text(ui->workoutStatus, "Tracking needs sensor");
     }
 }
 
@@ -713,6 +829,22 @@ void UIManager::updateScreens()
     }
 
     const PulseonAppState& state = appState->getState();
+    const uint16_t heartRate = state.heartRate > 0
+        ? state.heartRate
+        : (PULSEON_DEMO_MODE ? getDemoHeartRate(millis()) : 0);
+    const uint16_t steps = state.steps > 0
+        ? state.steps
+        : (PULSEON_DEMO_MODE ? 8241 : 0);
+    const uint8_t bloodOxygen = state.bloodOxygen > 0
+        ? state.bloodOxygen
+        : (PULSEON_DEMO_MODE ? 98 : 0);
+
+    if (state.phoneConnectionEventId != lastPhoneConnectionEventId)
+    {
+        lastPhoneConnectionEventId = state.phoneConnectionEventId;
+        showConnectionToast(state.phoneConnected);
+    }
+
     String clockText = "--:--";
     String dateText = "WAITING FOR PHONE TIME";
     time_t currentTime;
@@ -730,24 +862,6 @@ void UIManager::updateScreens()
         }
     }
 
-    lv_label_set_text(
-        homeConnection,
-        state.phoneConnected ? "BT  CONNECTED" : "BT  OFFLINE"
-    );
-    lv_obj_set_style_text_color(
-        homeConnection,
-        state.phoneConnected ? UI_COLOR_GOOD : UI_COLOR_MUTED,
-        0
-    );
-    if (state.phoneConnected)
-    {
-        lv_label_set_text_fmt(homeBattery, "%u%%", static_cast<unsigned>(state.phoneBattery));
-    }
-    else
-    {
-        lv_label_set_text(homeBattery, "--%");
-    }
-
     for (uint8_t face = 0; face < 6; ++face)
     {
         if (faceClock[face] != nullptr)
@@ -760,104 +874,122 @@ void UIManager::updateScreens()
         }
         if (faceHeart[face] != nullptr)
         {
-            if (state.heartRate > 0)
+            if (heartRate > 0)
             {
-                lv_label_set_text_fmt(faceHeart[face], "%u BPM", static_cast<unsigned>(state.heartRate));
+                lv_label_set_text_fmt(faceHeart[face], "%u BPM", static_cast<unsigned>(heartRate));
             }
             else
             {
                 lv_label_set_text(faceHeart[face], "-- BPM");
             }
         }
+        if (faceSteps[face] != nullptr)
+        {
+            if (steps > 0)
+            {
+                lv_label_set_text_fmt(faceSteps[face], "%u STEPS", static_cast<unsigned>(steps));
+            }
+            else
+            {
+                lv_label_set_text(faceSteps[face], "---- STEPS");
+            }
+        }
     }
 
-    if (state.heartRate > 0)
+    if (faceBattery[0] != nullptr)
     {
-        lv_label_set_text_fmt(heartRateValue, "%u BPM", static_cast<unsigned>(state.heartRate));
-        lv_label_set_text(heartRateStatus, "Live reading");
+        if (state.phoneConnected)
+        {
+            lv_label_set_text_fmt(
+                faceBattery[0],
+                "%u%%",
+                static_cast<unsigned>(state.phoneBattery)
+            );
+        }
+        else
+        {
+            lv_label_set_text(faceBattery[0], "--%");
+        }
+    }
+
+    if (heartRate > 0)
+    {
+        lv_label_set_text_fmt(heartRateValue, "%u BPM", static_cast<unsigned>(heartRate));
+        lv_label_set_text(
+            heartRateStatus,
+            state.heartRate > 0 ? "Live reading" : "Demo data"
+        );
     }
     else
     {
-        lv_label_set_text(heartRateValue, "-- BPM");
-        lv_label_set_text(heartRateStatus, "No live reading");
+        lv_label_set_text(heartRateValue, "--");
+        lv_label_set_text(heartRateStatus, "No sensor");
     }
 
-    if (state.steps > 0)
+    if (steps > 0)
     {
-        lv_label_set_text_fmt(activitySteps, "%u", static_cast<unsigned>(state.steps));
-        lv_label_set_text_fmt(faceSteps[2], "%u STEPS", static_cast<unsigned>(state.steps));
-        lv_label_set_text_fmt(faceSteps[3], "%u steps", static_cast<unsigned>(state.steps));
-        const uint16_t progress = state.steps >= 10000
-            ? 100
-            : static_cast<uint16_t>((static_cast<uint32_t>(state.steps) * 100) / 10000);
-        lv_label_set_text_fmt(faceActivityPercent, "%u%%", static_cast<unsigned>(progress));
-        lv_arc_set_value(faceActivityArc, progress);
+        lv_label_set_text_fmt(activitySteps, "%u", static_cast<unsigned>(steps));
     }
     else
     {
         lv_label_set_text(activitySteps, "--");
-        lv_label_set_text(faceSteps[2], "-- STEPS");
-        lv_label_set_text(faceSteps[3], "-- steps");
-        lv_label_set_text(faceActivityPercent, "--%");
-        lv_arc_set_value(faceActivityArc, 0);
     }
     lv_label_set_text(activityCalories, "-- kcal");
-    lv_label_set_text(faceCalories[5], "-- KCAL");
 
-    if (state.weatherAvailable)
+    if (faceWeather[2] != nullptr)
     {
-        lv_label_set_text_fmt(faceWeather[2], "%d°", state.weatherTemperature);
+        if (state.weatherAvailable)
+        {
+            lv_label_set_text_fmt(faceWeather[2], "%d°", state.weatherTemperature);
+        }
+        else
+        {
+            lv_label_set_text(faceWeather[2], "--°");
+        }
     }
-    else
+    if (faceWeather[3] != nullptr)
     {
-        lv_label_set_text(faceWeather[2], "--°");
+        if (state.weatherAvailable)
+        {
+            lv_label_set_text_fmt(faceWeather[3], "%d°C", state.weatherTemperature);
+        }
+        else
+        {
+            lv_label_set_text(faceWeather[3], "--°C");
+        }
+    }
+    if (faceBattery[2] != nullptr)
+    {
+        if (state.phoneConnected)
+        {
+            lv_label_set_text_fmt(faceBattery[2], "%u%%", static_cast<unsigned>(state.phoneBattery));
+        }
+        else
+        {
+            lv_label_set_text(faceBattery[2], "--%");
+        }
     }
 
-    if (state.bloodOxygen > 0)
+    if (bloodOxygen > 0)
     {
-        lv_label_set_text_fmt(oxygenValue, "%u%%", static_cast<unsigned>(state.bloodOxygen));
-        lv_label_set_text(oxygenStatus, "Reading available");
-        lv_label_set_text_fmt(faceOxygen[5], "%u%% SpO2", static_cast<unsigned>(state.bloodOxygen));
+        lv_label_set_text_fmt(oxygenValue, "%u%%", static_cast<unsigned>(bloodOxygen));
+        lv_label_set_text(
+            oxygenStatus,
+            state.bloodOxygen > 0 ? "Reading available" : "Demo data"
+        );
+        lv_label_set_text_fmt(faceOxygen[5], "%u%% O2", static_cast<unsigned>(bloodOxygen));
     }
     else
     {
         lv_label_set_text(oxygenValue, "--%");
         lv_label_set_text(oxygenStatus, "No reading available");
-        lv_label_set_text(faceOxygen[5], "--% SpO2");
+        lv_label_set_text(faceOxygen[5], "--% O2");
     }
 
-    lv_label_set_text(sleepDuration, "--h --m");
-    lv_label_set_text(sleepStatus, "Sleep data unavailable");
+    lv_label_set_text(sleepDuration, PULSEON_DEMO_MODE ? "7h 32m" : "--h --m");
+    lv_label_set_text(
+        sleepStatus,
+        PULSEON_DEMO_MODE ? "Demo sleep" : "Sleep data unavailable"
+    );
 
-    if (state.clockSynced)
-    {
-        time(&currentTime);
-        struct tm timeInfo;
-        if (localtime_r(&currentTime, &timeInfo) != nullptr)
-        {
-            const float secondsAngle = (static_cast<float>(timeInfo.tm_sec) * 6.0f - 90.0f) * 0.0174532925f;
-            const float minutesAngle = ((static_cast<float>(timeInfo.tm_min) + timeInfo.tm_sec / 60.0f) * 6.0f - 90.0f) * 0.0174532925f;
-            const float hoursAngle = ((static_cast<float>(timeInfo.tm_hour % 12) + timeInfo.tm_min / 60.0f) * 30.0f - 90.0f) * 0.0174532925f;
-
-            analogHourPoints[0] = {120, 165};
-            analogHourPoints[1] = {
-                static_cast<lv_value_precise_t>(120 + cosf(hoursAngle) * 42.0f),
-                static_cast<lv_value_precise_t>(165 + sinf(hoursAngle) * 42.0f)
-            };
-            analogMinutePoints[0] = {120, 165};
-            analogMinutePoints[1] = {
-                static_cast<lv_value_precise_t>(120 + cosf(minutesAngle) * 65.0f),
-                static_cast<lv_value_precise_t>(165 + sinf(minutesAngle) * 65.0f)
-            };
-            analogSecondPoints[0] = {120, 165};
-            analogSecondPoints[1] = {
-                static_cast<lv_value_precise_t>(120 + cosf(secondsAngle) * 74.0f),
-                static_cast<lv_value_precise_t>(165 + sinf(secondsAngle) * 74.0f)
-            };
-
-            lv_line_set_points(faceAnalogHourHand, analogHourPoints, 2);
-            lv_line_set_points(faceAnalogMinuteHand, analogMinutePoints, 2);
-            lv_line_set_points(faceAnalogSecondHand, analogSecondPoints, 2);
-        }
-    }
 }

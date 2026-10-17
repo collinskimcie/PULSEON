@@ -10,3 +10,7 @@
 #define PULSEON_TOUCH_CONFIGURED   0
 
 #define PULSEON_CHRONOS_ENABLED    1
+
+#ifndef PULSEON_DEMO_MODE
+#define PULSEON_DEMO_MODE          1
+#endif

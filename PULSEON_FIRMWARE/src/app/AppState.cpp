@@ -14,6 +14,10 @@ const PulseonAppState& AppStateManager::getState() const
 
 void AppStateManager::setPhoneConnection(bool connected)
 {
+    if (state.phoneConnected != connected)
+    {
+        ++state.phoneConnectionEventId;
+    }
     state.phoneConnected = connected;
 }
 
