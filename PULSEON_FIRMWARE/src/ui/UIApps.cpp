@@ -478,3 +478,8 @@ void UIApps::poll()
     lastPollMs = now;
     refreshStatus();
 }
+
+void UIApps::showMusic()
+{
+    showPage(PAGE_MUSIC);
+}

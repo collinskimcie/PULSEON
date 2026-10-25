@@ -14,9 +14,6 @@ constexpr int32_t DISPLAY_WIDTH = 240;
 constexpr int32_t DISPLAY_HEIGHT = 320;
 constexpr int32_t MARGIN = 16;
 constexpr int32_t CONTENT_WIDTH = DISPLAY_WIDTH - (MARGIN * 2);
-constexpr uint8_t DEMO_HEART_RATE_VALUES[] = {
-    78, 80, 82, 84, 83, 81, 79, 77, 75, 73, 72, 74, 76
-};
 constexpr int32_t FACE_CIRCLE_TOP = 40;
 
 const lv_color_t UI_COLOR_BACKGROUND = lv_color_hex(0x090A0E);
@@ -43,13 +40,6 @@ int32_t faceChildY(lv_obj_t* parent, int32_t y)
         }
     }
     return y;
-}
-
-uint16_t getDemoHeartRate(uint32_t now)
-{
-    const size_t sample = (now / 1000) %
-        (sizeof(DEMO_HEART_RATE_VALUES) / sizeof(DEMO_HEART_RATE_VALUES[0]));
-    return DEMO_HEART_RATE_VALUES[sample];
 }
 
 lv_obj_t* createLabel(
@@ -534,104 +524,6 @@ lv_obj_t* UIManager::createScreen(Screen screen)
 
             break;
         }
-        case SCREEN_HEART_RATE:
-        {
-            createBadge(root, "HEART RATE", 26);
-            heartRateValue = createLabel(root, "--", 12, 91, 216, 66, font_h1, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            heartRateStatus = createLabel(root, "No sensor", MARGIN, 158, CONTENT_WIDTH, 24, font_h5, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            createCard(root, MARGIN, 207, CONTENT_WIDTH, 1, UI_COLOR_CARD_ALT, 0);
-            createLabel(root, "Connect a sensor for heart rate.", 28, 222, 184, 42, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            break;
-        }
-        case SCREEN_SLEEP:
-        {
-            createBadge(root, "SLEEP", 26);
-            sleepDuration = createLabel(root, "--h --m", 12, 78, 216, 58, font_h1, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            sleepStatus = createLabel(root, "Sleep data unavailable", MARGIN, 137, CONTENT_WIDTH, 24, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-
-            const char* stages[] = {"Deep", "Core", "REM"};
-            for (uint8_t stage = 0; stage < 3; ++stage)
-            {
-                const int32_t y = 184 + static_cast<int32_t>(stage) * 36;
-                createLabel(root, stages[stage], 24, y, 70, 22, font_h5, UI_COLOR_TEXT);
-                createLabel(root, "--", 172, y, 42, 22, font_h5, UI_COLOR_MUTED, LV_TEXT_ALIGN_RIGHT);
-                createCard(root, 24, y + 23, CONTENT_WIDTH, 5, UI_COLOR_CARD_ALT, 3);
-            }
-            createLabel(root, "Stages appear with sleep data.", MARGIN, 294, CONTENT_WIDTH, 18, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            break;
-        }
-        case SCREEN_ACTIVITY:
-        {
-            createBadge(root, "ACTIVITY", 26);
-            lv_obj_t* activityRing = lv_obj_create(root);
-            lv_obj_set_pos(activityRing, 30, 69);
-            lv_obj_set_size(activityRing, 180, 180);
-            lv_obj_set_style_bg_opa(activityRing, LV_OPA_TRANSP, 0);
-            lv_obj_set_style_border_color(activityRing, UI_COLOR_ACCENT_DARK, 0);
-            lv_obj_set_style_border_width(activityRing, 6, 0);
-            lv_obj_set_style_radius(activityRing, LV_RADIUS_CIRCLE, 0);
-            lv_obj_clear_flag(activityRing, LV_OBJ_FLAG_SCROLLABLE);
-            activitySteps = createLabel(root, "--", 42, 123, 156, 54, font_h1, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            createLabel(root, "steps", 42, 175, 156, 26, font_h5, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-
-            lv_obj_t* calories = createCard(root, MARGIN, 263, 98, 43);
-            createLabel(calories, "CALORIES", 7, 3, 84, 16, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            activityCalories = createLabel(calories, "-- kcal", 7, 20, 84, 20, font_h5, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            lv_obj_t* distance = createCard(root, 126, 263, 98, 43);
-            createLabel(distance, "DISTANCE", 7, 3, 84, 16, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            createLabel(distance, "-- km", 7, 20, 84, 20, font_h5, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            break;
-        }
-        case SCREEN_BLOOD_OXYGEN:
-        {
-            createBadge(root, "SpO2", 26);
-            oxygenValue = createLabel(root, "--%", 12, 88, 216, 82, font_h1, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            createLabel(root, "Blood oxygen", MARGIN, 167, CONTENT_WIDTH, 26, font_h5, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            lv_obj_t* status = createCard(root, 32, 218, 176, 42, UI_COLOR_CARD);
-            oxygenStatus = createLabel(status, "No reading available", 8, 10, 160, 22, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            createLabel(root, "Connect a sensor for a reading.", 28, 273, 184, 36, font_body, UI_COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-            break;
-        }
-        case SCREEN_WORKOUT:
-        {
-            createBadge(root, "WORKOUT", 22);
-            workoutStatus = createLabel(root, "Choose a workout", MARGIN, 58, CONTENT_WIDTH, 26, font_h5, UI_COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-            const char* modes[] = {"RUN", "CYCLE", "HIIT"};
-            const char* durations[] = {"Outdoor run  |  30-60 min", "Cycling  |  20-45 min", "HIIT  |  15-30 min"};
-            for (uint8_t mode = 0; mode < 3; ++mode)
-            {
-                lv_obj_t* button = lv_button_create(root);
-                const int32_t y = 99 + static_cast<int32_t>(mode) * 51;
-                lv_obj_set_pos(button, MARGIN, y);
-                lv_obj_set_size(button, CONTENT_WIDTH, 43);
-                styleButton(button, mode == selectedWorkoutMode);
-                workoutModeButtons[mode] = button;
-                lv_obj_t* modeLabel = createLabel(button, modes[mode], 12, 10, 53, 22, font_h5, UI_COLOR_ACCENT);
-                styleButtonLabel(modeLabel);
-                lv_obj_t* description = createLabel(button, durations[mode], 69, 11, 125, 20, font_body, UI_COLOR_TEXT);
-                styleButtonLabel(description);
-                workoutModeContexts[mode] = {this, mode};
-                lv_obj_add_event_cb(
-                    button,
-                    workoutModeCallback,
-                    LV_EVENT_CLICKED,
-                    &workoutModeContexts[mode]
-                );
-            }
-
-            lv_obj_t* startButton = lv_button_create(root);
-            lv_obj_set_pos(startButton, MARGIN, 270);
-            lv_obj_set_size(startButton, CONTENT_WIDTH, 40);
-            lv_obj_set_style_bg_color(startButton, UI_COLOR_ACCENT, 0);
-            lv_obj_set_style_bg_opa(startButton, LV_OPA_COVER, 0);
-            lv_obj_set_style_border_width(startButton, 0, 0);
-            lv_obj_set_style_radius(startButton, 20, 0);
-            createLabel(startButton, "START", 8, 7, CONTENT_WIDTH - 16, 26, font_h5, UI_COLOR_BACKGROUND, LV_TEXT_ALIGN_CENTER);
-            lv_obj_add_event_cb(startButton, workoutStartCallback, LV_EVENT_CLICKED, this);
-            break;
-        }
-        default:
-            return nullptr;
     }
 
     return root;
@@ -762,47 +654,11 @@ void UIManager::screenGestureCallback(lv_event_t* event)
     }
     if (direction == LV_DIR_LEFT)
     {
-        const uint8_t next =
-            (static_cast<uint8_t>(ui->currentScreen) + 1) % SCREEN_COUNT;
-        ui->showScreen(static_cast<Screen>(next));
+        ui->overlays.showHistory();
     }
     else if (direction == LV_DIR_RIGHT)
     {
-        const uint8_t previous =
-            (static_cast<uint8_t>(ui->currentScreen) + SCREEN_COUNT - 1) %
-            SCREEN_COUNT;
-        ui->showScreen(static_cast<Screen>(previous));
-    }
-}
-
-void UIManager::workoutModeCallback(lv_event_t* event)
-{
-    WorkoutModeContext* context =
-        static_cast<WorkoutModeContext*>(lv_event_get_user_data(event));
-    if (context == nullptr || context->manager == nullptr || context->mode >= 3)
-    {
-        return;
-    }
-
-    UIManager* ui = context->manager;
-    ui->selectedWorkoutMode = context->mode;
-
-    for (uint8_t mode = 0; mode < 3; ++mode)
-    {
-        if (ui->workoutModeButtons[mode] != nullptr)
-        {
-            styleButton(ui->workoutModeButtons[mode], mode == ui->selectedWorkoutMode);
-        }
-    }
-    lv_label_set_text(ui->workoutStatus, "Choose a workout");
-}
-
-void UIManager::workoutStartCallback(lv_event_t* event)
-{
-    UIManager* ui = static_cast<UIManager*>(lv_event_get_user_data(event));
-    if (ui != nullptr)
-    {
-        lv_label_set_text(ui->workoutStatus, "Tracking needs sensor");
+        ui->apps.showMusic();
     }
 }
 
@@ -839,15 +695,9 @@ void UIManager::updateScreens()
     }
 
     const PulseonAppState& state = appState->getState();
-    const uint16_t heartRate = state.heartRate > 0
-        ? state.heartRate
-        : (PULSEON_DEMO_MODE ? getDemoHeartRate(millis()) : 0);
-    const uint16_t steps = state.steps > 0
-        ? state.steps
-        : (PULSEON_DEMO_MODE ? 8241 : 0);
-    const uint8_t bloodOxygen = state.bloodOxygen > 0
-        ? state.bloodOxygen
-        : (PULSEON_DEMO_MODE ? 98 : 0);
+    const uint16_t heartRate = state.heartRate;
+    const uint16_t steps = state.steps;
+    const uint8_t bloodOxygen = state.bloodOxygen;
 
     if (state.phoneConnectionEventId != lastPhoneConnectionEventId)
     {
@@ -922,29 +772,6 @@ void UIManager::updateScreens()
         }
     }
 
-    if (heartRate > 0)
-    {
-        lv_label_set_text_fmt(heartRateValue, "%u BPM", static_cast<unsigned>(heartRate));
-        lv_label_set_text(
-            heartRateStatus,
-            state.heartRate > 0 ? "Live reading" : "Demo data"
-        );
-    }
-    else
-    {
-        lv_label_set_text(heartRateValue, "--");
-        lv_label_set_text(heartRateStatus, "No sensor");
-    }
-
-    if (steps > 0)
-    {
-        lv_label_set_text_fmt(activitySteps, "%u", static_cast<unsigned>(steps));
-    }
-    else
-    {
-        lv_label_set_text(activitySteps, "--");
-    }
-    lv_label_set_text(activityCalories, "-- kcal");
 
     if (faceWeather[2] != nullptr)
     {
@@ -980,26 +807,16 @@ void UIManager::updateScreens()
         }
     }
 
-    if (bloodOxygen > 0)
+    if (faceOxygen[5] != nullptr)
     {
-        lv_label_set_text_fmt(oxygenValue, "%u%%", static_cast<unsigned>(bloodOxygen));
-        lv_label_set_text(
-            oxygenStatus,
-            state.bloodOxygen > 0 ? "Reading available" : "Demo data"
-        );
-        lv_label_set_text_fmt(faceOxygen[5], "%u%% O2", static_cast<unsigned>(bloodOxygen));
+        if (bloodOxygen > 0)
+        {
+            lv_label_set_text_fmt(faceOxygen[5], "%u%% O2", static_cast<unsigned>(bloodOxygen));
+        }
+        else
+        {
+            lv_label_set_text(faceOxygen[5], "--% O2");
+        }
     }
-    else
-    {
-        lv_label_set_text(oxygenValue, "--%");
-        lv_label_set_text(oxygenStatus, "No reading available");
-        lv_label_set_text(faceOxygen[5], "--% O2");
-    }
-
-    lv_label_set_text(sleepDuration, PULSEON_DEMO_MODE ? "7h 32m" : "--h --m");
-    lv_label_set_text(
-        sleepStatus,
-        PULSEON_DEMO_MODE ? "Demo sleep" : "Sleep data unavailable"
-    );
 
 }

@@ -6,3 +6,7 @@
 .vscode/ipch
 
 /build/
+
+# local backups
+src/**/*.before-*
+src/*.before-*

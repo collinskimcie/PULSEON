@@ -16,6 +16,7 @@ public:
     void begin(AppStateManager* appState, ChronosManager* chronos, UIOverlays* overlays);
     void poll();
     void show();
+    void showMusic();
     bool isVisible() const;
 
 private:

@@ -15,11 +15,6 @@ public:
     enum Screen : uint8_t
     {
         SCREEN_WATCH_HOME = 0,
-        SCREEN_HEART_RATE,
-        SCREEN_SLEEP,
-        SCREEN_ACTIVITY,
-        SCREEN_BLOOD_OXYGEN,
-        SCREEN_WORKOUT,
         SCREEN_COUNT
     };
 
@@ -35,8 +30,6 @@ private:
     static void openFacePickerCallback(lv_event_t* event);
     static void selectHomeFaceCallback(lv_event_t* event);
     static void closeFacePickerCallback(lv_event_t* event);
-    static void workoutModeCallback(lv_event_t* event);
-    static void workoutStartCallback(lv_event_t* event);
     static void connectionToastTimerCallback(lv_timer_t* timer);
 
     void createScreens();
@@ -51,12 +44,6 @@ private:
     {
         UIManager* manager;
         uint8_t face;
-    };
-
-    struct WorkoutModeContext
-    {
-        UIManager* manager;
-        uint8_t mode;
     };
 
     AppStateManager* appState = nullptr;
@@ -81,19 +68,6 @@ private:
     lv_obj_t* faceWeather[6] = {};
     lv_obj_t* faceOxygen[6] = {};
     Screen facePickerReturnScreen = SCREEN_WATCH_HOME;
-
-    lv_obj_t* heartRateValue = nullptr;
-    lv_obj_t* heartRateStatus = nullptr;
-    lv_obj_t* sleepDuration = nullptr;
-    lv_obj_t* sleepStatus = nullptr;
-    lv_obj_t* activitySteps = nullptr;
-    lv_obj_t* activityCalories = nullptr;
-    lv_obj_t* oxygenValue = nullptr;
-    lv_obj_t* oxygenStatus = nullptr;
-    lv_obj_t* workoutStatus = nullptr;
-    lv_obj_t* workoutModeButtons[3] = {};
-    WorkoutModeContext workoutModeContexts[3] = {};
-    uint8_t selectedWorkoutMode = 0;
 
     uint32_t lastUpdateMs = 0;
     uint32_t lastPhoneConnectionEventId = 0;
