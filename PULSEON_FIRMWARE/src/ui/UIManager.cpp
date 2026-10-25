@@ -194,6 +194,7 @@ void UIManager::begin(AppStateManager* state)
     Serial.println("[UI] Initializing six-screen health interface...");
     PULSEON_WATCH_UI_init(nullptr);
     createScreens();
+    overlays.begin(appState, chronos);
     showScreen(SCREEN_WATCH_HOME);
     updateScreens();
     lastUpdateMs = millis();
@@ -810,6 +811,8 @@ void UIManager::update()
     {
         return;
     }
+
+    overlays.poll();
 
     const uint32_t now = millis();
     if (now - lastUpdateMs < 1000)

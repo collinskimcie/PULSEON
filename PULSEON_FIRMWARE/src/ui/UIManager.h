@@ -4,6 +4,7 @@
 #include <lvgl.h>
 
 #include "../app/AppState.h"
+#include "UIOverlays.h"
 
 class ChronosManager;
 
@@ -95,4 +96,6 @@ private:
 
     uint32_t lastUpdateMs = 0;
     uint32_t lastPhoneConnectionEventId = 0;
+
+    UIOverlays overlays;
 };
