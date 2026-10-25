@@ -1,15 +1,34 @@
 #include "ChronosManager.h"
 
+#include <string.h>
+
+static_assert(PULSEON_MAX_NOTIFICATIONS == NOTIF_SIZE, "notification size mismatch");
+static_assert(PULSEON_MAX_FORECAST_DAYS == WEATHER_SIZE, "weather size mismatch");
+static_assert(PULSEON_MAX_ALARMS == ALARM_SIZE, "alarm size mismatch");
+static_assert(PULSEON_MAX_QR == QR_SIZE, "qr size mismatch");
+static_assert(PULSEON_NAV_ICON_BYTES == ((CHRONOS_ICON_SIZE * CHRONOS_ICON_SIZE) / 8),
+              "navigation icon size mismatch");
+
 ChronosManager* ChronosManager::instance = nullptr;
+
+// ------------------------------------------------------------------
+// Lifecycle
+// ------------------------------------------------------------------
 
 void ChronosManager::begin()
 {
     instance = this;
 
+    if (queueMutex == nullptr)
+    {
+        queueMutex = xSemaphoreCreateMutex();
+    }
+
     Serial.println("[CHRONOS] Initializing...");
 
     watch.setName("PULSEON");
-    watch.setScreen(CS_0x0_000_CFF);
+    // Identifies this board (Viewe 240x320) in the Chronos app.
+    watch.setScreen(CF_VIEWE_28_240x320);
 
     watch.setConnectionCallback(connectionCallback);
     watch.setNotificationCallback(notificationCallback);
@@ -27,23 +46,118 @@ void ChronosManager::loop()
 {
     watch.loop();
 
-    if (appState != nullptr)
+    // Drain a bounded number of events per pass so the UI never stalls.
+    Event ev;
+    for (uint8_t i = 0; i < 8 && pop(ev); ++i)
     {
-        appState->setPhoneBattery(
-            watch.getPhoneBattery()
-        );
+        dispatch(ev);
+    }
 
-        appState->setPhoneCharging(
-            watch.isPhoneCharging()
-        );
+    if (droppedEvents != 0)
+    {
+        Serial.printf("[CHRONOS] WARNING: %lu events dropped\n",
+                      static_cast<unsigned long>(droppedEvents));
+        droppedEvents = 0;
+    }
 
-        appState->setNotificationCount(
-            watch.getNotificationCount()
-        );
-
-        updateWeather();
+    const uint32_t now = millis();
+    if (now - lastPollMs >= 1000)
+    {
+        lastPollMs = now;
+        pollPhoneState();
+        pollAlarms();
     }
 }
+
+void ChronosManager::pollPhoneState()
+{
+    if (appState == nullptr)
+    {
+        return;
+    }
+
+    appState->setPhoneBattery(watch.getPhoneBattery());
+    appState->setPhoneCharging(watch.isPhoneCharging());
+    appState->setNotificationCount(watch.getNotificationCount());
+}
+
+// ------------------------------------------------------------------
+// Alarms (the library has no alarm callback, so we poll once a second)
+// ------------------------------------------------------------------
+
+void ChronosManager::pollAlarms()
+{
+    if (appState == nullptr)
+    {
+        return;
+    }
+
+    const PulseonAppState& st = appState->getState();
+
+    // Without a phone-synced clock the RTC is meaningless.
+    if (!st.clockSynced)
+    {
+        alarmPrimed = false;
+        return;
+    }
+
+    for (uint8_t i = 0; i < PULSEON_MAX_ALARMS; ++i)
+    {
+        const bool active = watch.isAlarmActive(i);
+
+        // Ring on the false -> true edge only, and never on the first pass
+        // after sync (avoids ringing an alarm that is already "active").
+        if (alarmPrimed && active && !alarmWasActive[i] && st.alarmRinging < 0)
+        {
+            appState->setAlarmRinging(static_cast<int8_t>(i));
+            Serial.printf("[CHRONOS] Alarm %u ringing\n", static_cast<unsigned>(i));
+        }
+
+        alarmWasActive[i] = active;
+    }
+
+    alarmPrimed = true;
+
+    if (snoozeAlarmIndex >= 0 &&
+        st.alarmRinging < 0 &&
+        static_cast<int32_t>(millis() - snoozeUntilMs) >= 0)
+    {
+        appState->setAlarmRinging(snoozeAlarmIndex);
+        snoozeAlarmIndex = -1;
+    }
+}
+
+void ChronosManager::dismissAlarm()
+{
+    snoozeAlarmIndex = -1;
+
+    if (appState != nullptr)
+    {
+        appState->setAlarmRinging(-1);
+    }
+}
+
+void ChronosManager::snoozeAlarm(uint8_t minutes)
+{
+    if (appState == nullptr)
+    {
+        return;
+    }
+
+    const int8_t ringing = appState->getState().alarmRinging;
+    if (ringing < 0)
+    {
+        return;
+    }
+
+    snoozeAlarmIndex = ringing;
+    snoozeUntilMs = millis() + static_cast<uint32_t>(minutes) * 60000UL;
+    appState->setAlarmRinging(-1);
+}
+
+// ------------------------------------------------------------------
+// Data copied from the library into AppState
+// ------------------------------------------------------------------
 
 void ChronosManager::updateWeather()
 {
@@ -52,24 +166,162 @@ void ChronosManager::updateWeather()
         return;
     }
 
-    int weatherCount = watch.getWeatherCount();
+    int count = watch.getWeatherCount();
 
-    if (weatherCount <= 0)
+    if (count <= 0)
     {
         return;
     }
 
-    Weather weather = watch.getWeatherAt(0);
+    if (count > PULSEON_MAX_FORECAST_DAYS)
+    {
+        count = PULSEON_MAX_FORECAST_DAYS;
+    }
 
-    String city = watch.getWeatherCity();
+    PulseonForecastDay days[PULSEON_MAX_FORECAST_DAYS];
 
-    appState->setWeather(
-        city,
-        weather.temp,
-        weather.high,
-        weather.low
+    for (int i = 0; i < count; ++i)
+    {
+        const Weather w = watch.getWeatherAt(i);
+        days[i].icon = w.icon;
+        days[i].day = w.day;
+        days[i].temp = w.temp;
+        days[i].high = w.high;
+        days[i].low = w.low;
+    }
+
+    appState->setWeatherForecast(
+        watch.getWeatherCity(),
+        watch.getWeatherTime(),
+        days,
+        static_cast<uint8_t>(count)
     );
 }
+
+void ChronosManager::updateNavigation()
+{
+    if (appState == nullptr)
+    {
+        return;
+    }
+
+    const Navigation n = watch.getNavigation();
+
+    PulseonNavigation p;
+    p.active = n.active;
+    p.isNavigation = n.isNavigation;
+    p.hasIcon = n.hasIcon;
+    p.distance = n.distance;
+    p.duration = n.duration;
+    p.eta = n.eta;
+    p.title = n.title;
+    p.directions = n.directions;
+    p.speed = n.speed;
+    p.iconCRC = n.iconCRC;
+
+    if (n.hasIcon)
+    {
+        memcpy(p.icon, n.icon, sizeof(p.icon));
+    }
+
+    appState->setNavigationData(p);
+}
+
+void ChronosManager::updateAlarms()
+{
+    if (appState == nullptr)
+    {
+        return;
+    }
+
+    PulseonAlarm alarms[PULSEON_MAX_ALARMS];
+
+    for (uint8_t i = 0; i < PULSEON_MAX_ALARMS; ++i)
+    {
+        const Alarm a = watch.getAlarm(i);
+        alarms[i].hour = a.hour;
+        alarms[i].minute = a.minute;
+        alarms[i].repeat = a.repeat;
+        alarms[i].enabled = a.enabled;
+    }
+
+    appState->setAlarms(alarms, PULSEON_MAX_ALARMS);
+}
+
+void ChronosManager::updateQr()
+{
+    if (appState == nullptr)
+    {
+        return;
+    }
+
+    for (uint8_t i = 0; i < PULSEON_MAX_QR; ++i)
+    {
+        appState->setQr(i, watch.getQrAt(i));
+    }
+}
+
+// ------------------------------------------------------------------
+// Event queue
+// ------------------------------------------------------------------
+
+void ChronosManager::push(const Event& ev)
+{
+    if (queueMutex == nullptr)
+    {
+        return;
+    }
+
+    xSemaphoreTake(queueMutex, portMAX_DELAY);
+    if (queueCount < kQueueSize)
+    {
+        queue[(queueHead + queueCount) % kQueueSize] = ev;
+        ++queueCount;
+    }
+    else
+    {
+        ++droppedEvents;
+    }
+    xSemaphoreGive(queueMutex);
+}
+
+bool ChronosManager::pop(Event& ev)
+{
+    if (queueMutex == nullptr)
+    {
+        return false;
+    }
+
+    bool have = false;
+    xSemaphoreTake(queueMutex, portMAX_DELAY);
+    if (queueCount > 0)
+    {
+        ev = queue[queueHead];
+        queue[queueHead] = Event();
+        queueHead = (queueHead + 1) % kQueueSize;
+        --queueCount;
+        have = true;
+    }
+    xSemaphoreGive(queueMutex);
+    return have;
+}
+
+void ChronosManager::dispatch(const Event& ev)
+{
+    switch (ev.type)
+    {
+        case Event::CONNECTION:   handleConnection(ev.flag); break;
+        case Event::NOTIFICATION: handleNotification(ev.notification); break;
+        case Event::RINGER:       handleRinger(ev.text, ev.flag); break;
+        case Event::CONFIG:       handleConfiguration(ev.config, ev.a, ev.b); break;
+        case Event::HEALTH:       handleHealthRequest(ev.health, ev.flag); break;
+        default: break;
+    }
+}
+
+// ------------------------------------------------------------------
+// Accessors and actions
+// ------------------------------------------------------------------
 
 bool ChronosManager::isConnected()
 {
@@ -116,57 +368,102 @@ void ChronosManager::controlMusic(Control command)
     watch.musicControl(command);
 }
 
+void ChronosManager::setVolume(uint8_t level)
+{
+    watch.setVolume(level);
+}
+
+void ChronosManager::findPhone(bool start)
+{
+    watch.findPhone(start);
+}
+
+bool ChronosManager::capturePhoto()
+{
+    return watch.capturePhoto();
+}
+
+void ChronosManager::clearNotifications()
+{
+    watch.clearNotifications();
+
+    if (appState != nullptr)
+    {
+        appState->clearNotifications();
+    }
+}
+
+int ChronosManager::getContactCount()
+{
+    return watch.getContactCount();
+}
+
+Contact ChronosManager::getContact(int index)
+{
+    return watch.getContact(index);
+}
+
 void ChronosManager::attachAppState(AppStateManager* state)
 {
     appState = state;
 }
 
+// ------------------------------------------------------------------
+// Library callbacks (BLE task): enqueue only
+// ------------------------------------------------------------------
+
 void ChronosManager::connectionCallback(bool state)
 {
-    if (instance != nullptr)
-    {
-        instance->handleConnection(state);
-    }
+    if (instance == nullptr) return;
+    Event ev;
+    ev.type = Event::CONNECTION;
+    ev.flag = state;
+    instance->push(ev);
 }
 
 void ChronosManager::notificationCallback(Notification notification)
 {
-    if (instance != nullptr)
-    {
-        instance->handleNotification(notification);
-    }
+    if (instance == nullptr) return;
+    Event ev;
+    ev.type = Event::NOTIFICATION;
+    ev.notification = notification;
+    instance->push(ev);
 }
 
 void ChronosManager::ringerCallback(String caller, bool state)
 {
-    if (instance != nullptr)
-    {
-        instance->handleRinger(caller, state);
-    }
+    if (instance == nullptr) return;
+    Event ev;
+    ev.type = Event::RINGER;
+    ev.text = caller;
+    ev.flag = state;
+    instance->push(ev);
 }
 
-void ChronosManager::configurationCallback(
-    Config config,
-    uint32_t a,
-    uint32_t b
-)
+void ChronosManager::configurationCallback(Config config, uint32_t a, uint32_t b)
 {
-    if (instance != nullptr)
-    {
-        instance->handleConfiguration(config, a, b);
-    }
+    if (instance == nullptr) return;
+    Event ev;
+    ev.type = Event::CONFIG;
+    ev.config = config;
+    ev.a = a;
+    ev.b = b;
+    instance->push(ev);
 }
 
-void ChronosManager::healthRequestCallback(
-    HealthRequest request,
-    bool state
-)
+void ChronosManager::healthRequestCallback(HealthRequest request, bool state)
 {
-    if (instance != nullptr)
-    {
-        instance->handleHealthRequest(request, state);
-    }
+    if (instance == nullptr) return;
+    Event ev;
+    ev.type = Event::HEALTH;
+    ev.health = request;
+    ev.flag = state;
+    instance->push(ev);
 }
+
+// ------------------------------------------------------------------
+// Handlers (main task)
+// ------------------------------------------------------------------
 
 void ChronosManager::handleConnection(bool state)
 {
@@ -175,72 +472,58 @@ void ChronosManager::handleConnection(bool state)
     if (appState != nullptr)
     {
         appState->setPhoneConnection(state);
+
+        if (!state)
+        {
+            // Phone-driven features are meaningless once the link drops.
+            appState->clearNavigation();
+            appState->setCameraReady(false);
+            appState->setSynchronized(false);
+            appState->setIncomingCall("", false);
+        }
     }
 
-    Serial.print("[CHRONOS] Connection: ");
-    Serial.println(
-        connected
-            ? "CONNECTED"
-            : "DISCONNECTED"
-    );
+    Serial.printf("[CHRONOS] Connection: %s\n", state ? "CONNECTED" : "DISCONNECTED");
 }
 
-void ChronosManager::handleNotification(Notification notification)
+void ChronosManager::handleNotification(const Notification& n)
 {
-    Serial.println("[CHRONOS] Notification");
+    Serial.printf("[CHRONOS] Notification: %s | %s | %s\n",
+                  n.app.c_str(), n.title.c_str(), n.message.c_str());
 
-    Serial.print("  App: ");
-    Serial.println(notification.app);
-
-    Serial.print("  Time: ");
-    Serial.println(notification.time);
-
-    Serial.print("  Title: ");
-    Serial.println(notification.title);
-
-    Serial.print("  Message: ");
-    Serial.println(notification.message);
-
-    if (appState != nullptr)
+    if (appState == nullptr)
     {
-        appState->setNotification(
-            notification.app,
-            notification.time,
-            notification.title,
-            notification.message
-        );
-
-        appState->setNotificationCount(
-            watch.getNotificationCount()
-        );
+        return;
     }
+
+    appState->setNotification(n.app, n.time, n.title, n.message);
+    appState->addNotification(n.app, n.time, n.title, n.message, n.icon);
+    appState->setNotificationCount(watch.getNotificationCount());
 }
 
-void ChronosManager::handleRinger(String caller, bool state)
+void ChronosManager::handleRinger(const String& caller, bool state)
 {
     if (state)
     {
-        Serial.print("[CHRONOS] Incoming call: ");
-        Serial.println(caller);
+        Serial.printf("[CHRONOS] Incoming call: %s\n", caller.c_str());
     }
     else
     {
         Serial.println("[CHRONOS] Ringer dismissed");
     }
+
+    if (appState != nullptr)
+    {
+        appState->setIncomingCall(caller, state);
+    }
 }
 
-void ChronosManager::handleConfiguration(
-    Config config,
-    uint32_t a,
-    uint32_t b
-)
+void ChronosManager::handleConfiguration(Config config, uint32_t a, uint32_t b)
 {
-    Serial.print("[CHRONOS] Configuration: ");
-    Serial.print(static_cast<int>(config));
-    Serial.print(" a=");
-    Serial.print(a);
-    Serial.print(" b=");
-    Serial.println(b);
+    Serial.printf("[CHRONOS] Configuration: %d a=%lu b=%lu\n",
+                  static_cast<int>(config),
+                  static_cast<unsigned long>(a),
+                  static_cast<unsigned long>(b));
 
     if (appState == nullptr)
     {
@@ -251,61 +534,50 @@ void ChronosManager::handleConfiguration(
     {
         case CF_TIME:
             appState->setClockSynced(a == 1);
-
-            if (a == 1)
-            {
-                Serial.println("[CHRONOS] Clock synchronized from phone");
-            }
             break;
 
         case CF_HR24:
             appState->set24Hour(b != 0);
-
-            Serial.print("[CHRONOS] 24-hour mode: ");
-            Serial.println(b ? "ON" : "OFF");
             break;
 
         case CF_PBAT:
-            appState->setPhoneBattery(
-                static_cast<uint8_t>(b)
-            );
-
-            Serial.print("[CHRONOS] Phone battery: ");
-            Serial.print(b);
-            Serial.println("%");
+            appState->setPhoneBattery(static_cast<uint8_t>(b));
             break;
 
         case CF_WEATHER:
             updateWeather();
-
-            Serial.println("[CHRONOS] Weather update");
             break;
 
         case CF_NAV_DATA:
-            appState->setNavigationActive(true);
-
-            Serial.println("[CHRONOS] Navigation data");
-            break;
-
         case CF_NAV_ICON:
-            Serial.println("[CHRONOS] Navigation icon");
+            updateNavigation();
             break;
 
         case CF_CAMERA:
             appState->setCameraReady(b != 0);
+            break;
 
-            Serial.print("[CHRONOS] Camera: ");
-            Serial.println(
-                b ? "READY" : "NOT READY"
-            );
+        case CF_FIND:
+            appState->requestFindWatch();
+            break;
+
+        case CF_ALARM:
+            updateAlarms();
+            break;
+
+        case CF_QR:
+            updateQr();
+            break;
+
+        case CF_APP:
+            appState->setAppVersion(watch.getAppVersion());
             break;
 
         case CF_SYNCED:
             appState->setSynchronized(true);
-
-            Serial.println(
-                "[CHRONOS] Synchronization complete"
-            );
+            updateWeather();
+            updateAlarms();
+            updateQr();
             break;
 
         default:
@@ -313,77 +585,44 @@ void ChronosManager::handleConfiguration(
     }
 }
 
-void ChronosManager::handleHealthRequest(
-    HealthRequest request,
-    bool state
-)
+void ChronosManager::handleHealthRequest(HealthRequest request, bool state)
 {
     switch (request)
     {
         case HR_STEPS_RECORDS:
-            Serial.println(
-                "[CHRONOS] Health request: STEPS RECORDS"
-            );
+            Serial.println("[CHRONOS] Health request: STEPS RECORDS");
             break;
 
         case HR_SLEEP_RECORDS:
-            Serial.println(
-                "[CHRONOS] Health request: SLEEP RECORDS"
-            );
+            Serial.println("[CHRONOS] Health request: SLEEP RECORDS");
             break;
 
         case HR_HEART_RATE_MEASURE:
             activeHealthRequest = request;
             healthMeasurementRunning = state;
-
-            Serial.print(
-                "[CHRONOS] Heart-rate measurement: "
-            );
-            Serial.println(
-                state ? "START" : "STOP"
-            );
+            Serial.printf("[CHRONOS] Heart-rate measurement: %s\n", state ? "START" : "STOP");
             break;
 
         case HR_BLOOD_OXYGEN_MEASURE:
             activeHealthRequest = request;
             healthMeasurementRunning = state;
-
-            Serial.print(
-                "[CHRONOS] Blood-oxygen measurement: "
-            );
-            Serial.println(
-                state ? "START" : "STOP"
-            );
+            Serial.printf("[CHRONOS] Blood-oxygen measurement: %s\n", state ? "START" : "STOP");
             break;
 
         case HR_BLOOD_PRESSURE_MEASURE:
             activeHealthRequest = request;
             healthMeasurementRunning = state;
-
-            Serial.print(
-                "[CHRONOS] Blood-pressure measurement: "
-            );
-            Serial.println(
-                state ? "START" : "STOP"
-            );
+            Serial.printf("[CHRONOS] Blood-pressure measurement: %s\n", state ? "START" : "STOP");
             break;
 
         case HR_MEASURE_ALL:
             activeHealthRequest = request;
             healthMeasurementRunning = state;
-
-            Serial.print(
-                "[CHRONOS] All health measurements: "
-            );
-            Serial.println(
-                state ? "START" : "STOP"
-            );
+            Serial.printf("[CHRONOS] All health measurements: %s\n", state ? "START" : "STOP");
             break;
 
         default:
-            Serial.println(
-                "[CHRONOS] Unknown health request"
-            );
+            Serial.println("[CHRONOS] Unknown health request");
             break;
     }
 }
