@@ -195,6 +195,7 @@ void UIManager::begin(AppStateManager* state)
     PULSEON_WATCH_UI_init(nullptr);
     createScreens();
     overlays.begin(appState, chronos);
+    apps.begin(appState, chronos, &overlays);
     showScreen(SCREEN_WATCH_HOME);
     updateScreens();
     lastUpdateMs = millis();
@@ -754,6 +755,11 @@ void UIManager::screenGestureCallback(lv_event_t* event)
     }
 
     const lv_dir_t direction = lv_indev_get_gesture_dir(input);
+    if (direction == LV_DIR_TOP)
+    {
+        ui->apps.show();
+        return;
+    }
     if (direction == LV_DIR_LEFT)
     {
         const uint8_t next =
@@ -813,6 +819,7 @@ void UIManager::update()
     }
 
     overlays.poll();
+    apps.poll();
 
     const uint32_t now = millis();
     if (now - lastUpdateMs < 1000)

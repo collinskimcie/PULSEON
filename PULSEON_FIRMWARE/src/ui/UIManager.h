@@ -5,6 +5,7 @@
 
 #include "../app/AppState.h"
 #include "UIOverlays.h"
+#include "UIApps.h"
 
 class ChronosManager;
 
@@ -98,4 +99,5 @@ private:
     uint32_t lastPhoneConnectionEventId = 0;
 
     UIOverlays overlays;
+    UIApps apps;
 };
