@@ -66,6 +66,7 @@ void setup()
     Serial.println("[PULSEON] Chronos initialized.");
 #endif
 
+    uiManager.setBrightnessHandler([](uint8_t percent) { displayManager.setBrightness(percent); });
     uiManager.begin(&appState);
     Serial.println("[PULSEON] UI initialized.");
     logLvglMemory("after UI init");

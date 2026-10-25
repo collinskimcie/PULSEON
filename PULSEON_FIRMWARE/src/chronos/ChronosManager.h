@@ -14,6 +14,10 @@ public:
     void loop();
 
     bool isConnected();
+    bool isBluetoothOn() const;
+    void setBluetoothEnabled(bool enabled);
+    String getAddress();
+    int getSosContactIndex();
 
     uint8_t getPhoneBattery();
     bool isPhoneCharging();
@@ -96,6 +100,7 @@ private:
     ChronosESP32 watch;
 
     bool connected = false;
+    bool bluetoothOn = true;
     AppStateManager* appState = nullptr;
 
     HealthRequest activeHealthRequest = HR_HEART_RATE_MEASURE;

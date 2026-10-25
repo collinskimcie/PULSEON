@@ -246,3 +246,15 @@ void DisplayManager::touchReadCallback(
 
     (void)indev;
 }
+
+void DisplayManager::setBrightness(uint8_t percent)
+{
+    if (percent > 100)
+    {
+        percent = 100;
+    }
+    if (backlight != nullptr)
+    {
+        backlight->setBrightness(percent);
+    }
+}

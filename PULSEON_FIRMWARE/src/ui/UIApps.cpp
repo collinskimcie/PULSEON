@@ -144,12 +144,22 @@ void UIApps::buildApps()
         {"Camera", ACT_OPEN_CAMERA},   {"Alerts", ACT_OPEN_ALERTS},
     };
 
+    tileArea = lv_obj_create(root);
+    lv_obj_set_pos(tileArea, 0, 44);
+    lv_obj_set_size(tileArea, 240, 216);
+    lv_obj_set_style_bg_opa(tileArea, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(tileArea, 0, 0);
+    lv_obj_set_style_radius(tileArea, 0, 0);
+    lv_obj_set_style_pad_all(tileArea, 0, 0);
+    lv_obj_set_scroll_dir(tileArea, LV_DIR_VER);
+
     for (uint8_t i = 0; i < 6; ++i)
     {
         const int32_t x = 12 + (i % 2) * 112;
-        const int32_t y = 48 + (i / 2) * 72;
-        addAction(root, tiles[i].text, x, y, 104, 62, OV_CARD, OV_TEXT, tiles[i].act);
+        const int32_t y = 4 + (i / 2) * 72;
+        addAction(tileArea, tiles[i].text, x, y, 104, 62, OV_CARD, OV_TEXT, tiles[i].act);
     }
+    tileCount = 6;
 
     addAction(root, "Close", 12, 268, 216, 44, OV_ACCENT_DARK, OV_ACCENT, ACT_CLOSE);
 }
@@ -482,4 +492,49 @@ void UIApps::poll()
 void UIApps::showMusic()
 {
     showPage(PAGE_MUSIC);
+}
+
+void UIApps::addTile(const char* text, TileHandler handler, void* user)
+{
+    if (tileArea == nullptr || handler == nullptr || extraTileCount >= kMaxExtraTiles)
+    {
+        return;
+    }
+
+    ExtraTile& tile = extraTiles[extraTileCount++];
+    tile.self = this;
+    tile.handler = handler;
+    tile.user = user;
+
+    const int32_t x = 12 + (tileCount % 2) * 112;
+    const int32_t y = 4 + (tileCount / 2) * 72;
+
+    lv_obj_t* button = lv_button_create(tileArea);
+    lv_obj_set_pos(button, x, y);
+    lv_obj_set_size(button, 104, 62);
+    lv_obj_set_style_bg_color(button, OV_CARD, 0);
+    lv_obj_set_style_bg_opa(button, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(button, 0, 0);
+    lv_obj_set_style_shadow_width(button, 0, 0);
+    lv_obj_set_style_radius(button, 22, 0);
+    lv_obj_add_event_cb(button, extraTileClicked, LV_EVENT_CLICKED, &tile);
+
+    lv_obj_t* label = lv_label_create(button);
+    lv_label_set_text(label, text);
+    lv_obj_set_style_text_font(label, font_h5, 0);
+    lv_obj_set_style_text_color(label, OV_TEXT, 0);
+    lv_obj_center(label);
+
+    ++tileCount;
+}
+
+void UIApps::extraTileClicked(lv_event_t* event)
+{
+    ExtraTile* tile = static_cast<ExtraTile*>(lv_event_get_user_data(event));
+    if (tile == nullptr || tile->self == nullptr || tile->handler == nullptr)
+    {
+        return;
+    }
+    tile->self->showPage(PAGE_NONE);
+    tile->handler(tile->user);
 }

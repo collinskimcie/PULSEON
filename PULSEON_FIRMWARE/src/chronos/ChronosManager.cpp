@@ -626,3 +626,40 @@ void ChronosManager::handleHealthRequest(HealthRequest request, bool state)
             break;
     }
 }
+
+bool ChronosManager::isBluetoothOn() const
+{
+    return bluetoothOn;
+}
+
+void ChronosManager::setBluetoothEnabled(bool enabled)
+{
+    if (enabled == bluetoothOn)
+    {
+        return;
+    }
+
+    bluetoothOn = enabled;
+
+    if (enabled)
+    {
+        watch.begin();
+        Serial.println("[CHRONOS] Bluetooth ON");
+    }
+    else
+    {
+        watch.stop();
+        handleConnection(false);
+        Serial.println("[CHRONOS] Bluetooth OFF");
+    }
+}
+
+String ChronosManager::getAddress()
+{
+    return watch.getAddress();
+}
+
+int ChronosManager::getSosContactIndex()
+{
+    return watch.getSOSContactIndex();
+}

@@ -6,6 +6,7 @@
 #include "../app/AppState.h"
 #include "UIOverlays.h"
 #include "UIApps.h"
+#include "UISystem.h"
 
 class ChronosManager;
 
@@ -21,6 +22,7 @@ public:
     void begin(AppStateManager* appState);
     void update();
     void attachChronos(ChronosManager* chronosManager);
+    void setBrightnessHandler(UISystem::BrightnessHandler handler);
 
     void showScreen(Screen screen, bool fade = false);
     Screen getCurrentScreen() const;
@@ -74,4 +76,5 @@ private:
 
     UIOverlays overlays;
     UIApps apps;
+    UISystem sysui;
 };

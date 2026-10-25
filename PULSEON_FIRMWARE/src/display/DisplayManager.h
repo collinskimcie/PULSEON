@@ -12,6 +12,7 @@ public:
 
     lv_display_t* getDisplay() const;
     bool isInitialized() const;
+    void setBrightness(uint8_t percent);
 
 private:
     static void flushCallback(

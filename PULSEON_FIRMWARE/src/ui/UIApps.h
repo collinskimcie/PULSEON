@@ -19,6 +19,9 @@ public:
     void showMusic();
     bool isVisible() const;
 
+    typedef void (*TileHandler)(void* user);
+    void addTile(const char* text, TileHandler handler, void* user);
+
 private:
     enum Page : uint8_t
     {
@@ -98,5 +101,18 @@ private:
     lv_obj_t* cameraStatus = nullptr;
 
     bool findingPhone = false;
+
+    struct ExtraTile
+    {
+        UIApps* self;
+        TileHandler handler;
+        void* user;
+    };
+    static constexpr uint8_t kMaxExtraTiles = 8;
+    static void extraTileClicked(lv_event_t* event);
+    ExtraTile extraTiles[kMaxExtraTiles] = {};
+    uint8_t extraTileCount = 0;
+    uint8_t tileCount = 0;
+    lv_obj_t* tileArea = nullptr;
     uint32_t lastPollMs = 0;
 };

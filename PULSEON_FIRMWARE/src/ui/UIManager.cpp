@@ -186,6 +186,7 @@ void UIManager::begin(AppStateManager* state)
     createScreens();
     overlays.begin(appState, chronos);
     apps.begin(appState, chronos, &overlays);
+    sysui.begin(appState, chronos, &apps);
     showScreen(SCREEN_WATCH_HOME);
     updateScreens();
     lastUpdateMs = millis();
@@ -660,6 +661,10 @@ void UIManager::screenGestureCallback(lv_event_t* event)
     {
         ui->apps.showMusic();
     }
+    else if (direction == LV_DIR_BOTTOM)
+    {
+        ui->sysui.showSettings();
+    }
 }
 
 UIManager::Screen UIManager::getCurrentScreen() const
@@ -676,6 +681,7 @@ void UIManager::update()
 
     overlays.poll();
     apps.poll();
+    sysui.poll();
 
     const uint32_t now = millis();
     if (now - lastUpdateMs < 1000)
@@ -819,4 +825,9 @@ void UIManager::updateScreens()
         }
     }
 
+}
+
+void UIManager::setBrightnessHandler(UISystem::BrightnessHandler handler)
+{
+    sysui.setBrightnessHandler(handler);
 }
