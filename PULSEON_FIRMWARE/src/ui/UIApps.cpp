@@ -1,9 +1,11 @@
 #include "UIApps.h"
 
 #include <stdio.h>
+#include <time.h>
 
 #include "PULSEON_WATCH_UI.h"
 #include "UIOverlays.h"
+#include "UIText.h"
 #include "../chronos/ChronosManager.h"
 
 namespace
@@ -64,6 +66,24 @@ lv_obj_t* makeList(lv_obj_t* parent, int32_t x, int32_t y, int32_t w, int32_t h)
     return list;
 }
 
+constexpr int32_t NAV_ICON_PX = 96;      // 48x48 icon drawn at 2x
+constexpr bool NAV_ICON_INVERT = false;  // set true if the icon looks like a negative
+
+void weekdayName(uint8_t offset, bool clockSynced, char* buf, size_t n)
+{
+    static const char* const NAMES[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+    time_t t;
+    struct tm info;
+    if (clockSynced && time(&t) != static_cast<time_t>(-1) && localtime_r(&t, &info) != nullptr)
+    {
+        snprintf(buf, n, "%s", NAMES[(info.tm_wday + offset) % 7]);
+    }
+    else
+    {
+        snprintf(buf, n, "In %u days", static_cast<unsigned>(offset));
+    }
+}
+
 void formatTime(uint8_t hour, uint8_t minute, bool is24, char* buf, size_t n)
 {
     if (is24)
@@ -99,6 +119,7 @@ void UIApps::begin(AppStateManager* state, ChronosManager* chronosManager, UIOve
     buildAlarms();
     buildFind();
     buildCamera();
+    buildNav();
 }
 
 lv_obj_t* UIApps::makeRoot(Page page, const char* title)
@@ -138,10 +159,11 @@ void UIApps::buildApps()
     lv_obj_t* root = makeRoot(PAGE_APPS, "APPS");
 
     struct Tile { const char* text; Act act; };
-    const Tile tiles[6] = {
+    const Tile tiles[7] = {
         {"Music", ACT_OPEN_MUSIC},     {"Weather", ACT_OPEN_WEATHER},
         {"Alarms", ACT_OPEN_ALARMS},   {"Find phone", ACT_OPEN_FIND},
         {"Camera", ACT_OPEN_CAMERA},   {"Alerts", ACT_OPEN_ALERTS},
+        {"Navigate", ACT_OPEN_NAV},
     };
 
     tileArea = lv_obj_create(root);
@@ -153,13 +175,13 @@ void UIApps::buildApps()
     lv_obj_set_style_pad_all(tileArea, 0, 0);
     lv_obj_set_scroll_dir(tileArea, LV_DIR_VER);
 
-    for (uint8_t i = 0; i < 6; ++i)
+    for (uint8_t i = 0; i < 7; ++i)
     {
         const int32_t x = 12 + (i % 2) * 112;
         const int32_t y = 4 + (i / 2) * 72;
         addAction(tileArea, tiles[i].text, x, y, 104, 62, OV_CARD, OV_TEXT, tiles[i].act);
     }
-    tileCount = 6;
+    tileCount = 7;
 
     addAction(root, "Close", 12, 268, 216, 44, OV_ACCENT_DARK, OV_ACCENT, ACT_CLOSE);
 }
@@ -263,6 +285,7 @@ void UIApps::showPage(Page page)
 
     if (page == PAGE_WEATHER) refreshWeather();
     if (page == PAGE_ALARMS) refreshAlarms();
+    if (page == PAGE_NAV) refreshNav();
     if (page == PAGE_FIND || page == PAGE_CAMERA)
     {
         setFindLabel();
@@ -291,6 +314,7 @@ void UIApps::handle(uint8_t id)
         case ACT_OPEN_ALARMS:  showPage(PAGE_ALARMS); break;
         case ACT_OPEN_FIND:    showPage(PAGE_FIND); break;
         case ACT_OPEN_CAMERA:  showPage(PAGE_CAMERA); break;
+        case ACT_OPEN_NAV:     showPage(PAGE_NAV); break;
 
         case ACT_OPEN_ALERTS:
             showPage(PAGE_NONE);
@@ -372,6 +396,10 @@ void UIApps::refreshWeather()
         else if (i == 1) snprintf(name, sizeof(name), "Tomorrow");
         else             snprintf(name, sizeof(name), "In %u days", static_cast<unsigned>(i));
 
+        if (i >= 2)
+        {
+            weekdayName(i, st.clockSynced, name, sizeof(name));
+        }
         snprintf(buf, sizeof(buf), "%s   %d   H%d L%d", name, d.temp, d.high, d.low);
         makeLabel(weatherList, buf, 0, 0, 220, 22, font_body, OV_TEXT);
     }
@@ -452,6 +480,10 @@ void UIApps::refreshStatus()
             lv_label_set_text(cameraStatus, "Open the camera in the Chronos app");
         }
     }
+    else if (current == PAGE_NAV)
+    {
+        refreshNav();
+    }
 }
 
 void UIApps::setFindLabel()
@@ -475,7 +507,7 @@ void UIApps::stopFinding()
 
 void UIApps::poll()
 {
-    if (current != PAGE_FIND && current != PAGE_CAMERA)
+    if (current != PAGE_FIND && current != PAGE_CAMERA && current != PAGE_NAV)
     {
         return;
     }
@@ -537,4 +569,111 @@ void UIApps::extraTileClicked(lv_event_t* event)
     }
     tile->self->showPage(PAGE_NONE);
     tile->handler(tile->user);
+}
+
+void UIApps::buildNav()
+{
+    lv_obj_t* root = makeRoot(PAGE_NAV, "NAVIGATION");
+
+    navPixels = static_cast<uint16_t*>(
+        ps_malloc(static_cast<size_t>(NAV_ICON_PX) * NAV_ICON_PX * sizeof(uint16_t)));
+    if (navPixels != nullptr)
+    {
+        navIcon = lv_canvas_create(root);
+        lv_canvas_set_buffer(navIcon, navPixels, NAV_ICON_PX, NAV_ICON_PX, LV_COLOR_FORMAT_RGB565);
+        lv_canvas_fill_bg(navIcon, OV_BG, LV_OPA_COVER);
+        lv_obj_set_pos(navIcon, (240 - NAV_ICON_PX) / 2, 40);
+        lv_obj_add_flag(navIcon, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    navTitle = makeLabel(root, "", 12, 142, 216, 28, font_h4, OV_TEXT, LV_TEXT_ALIGN_CENTER);
+    navDirections = makeLabel(root, "", 12, 172, 216, 40, font_body, OV_TEXT,
+                              LV_TEXT_ALIGN_CENTER, LV_LABEL_LONG_WRAP);
+    navInfo = makeLabel(root, "", 12, 218, 216, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER);
+    navEta = makeLabel(root, "", 12, 240, 216, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER);
+
+    addAction(root, "Back", 12, 268, 216, 44, OV_CARD_ALT, OV_TEXT, ACT_BACK);
+}
+
+void UIApps::refreshNav()
+{
+    if (appState == nullptr || navTitle == nullptr)
+    {
+        return;
+    }
+
+    const PulseonNavigation& nav = appState->getState().navigation;
+
+    if (!nav.active)
+    {
+        lv_label_set_text(navTitle, "No navigation");
+        lv_label_set_text(navDirections, "Start navigation in the Chronos app");
+        lv_label_set_text(navInfo, "");
+        lv_label_set_text(navEta, "");
+        if (navIcon != nullptr)
+        {
+            lv_obj_add_flag(navIcon, LV_OBJ_FLAG_HIDDEN);
+        }
+        navShownIcon = false;
+        return;
+    }
+
+    lv_label_set_text(navTitle, uiText(nav.title).c_str());
+    lv_label_set_text(navDirections, uiText(nav.directions).c_str());
+
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%s   %s", nav.distance.c_str(), nav.duration.c_str());
+    lv_label_set_text(navInfo, buf);
+
+    if (nav.speed.length() > 0)
+    {
+        snprintf(buf, sizeof(buf), "ETA %s   %s", nav.eta.c_str(), nav.speed.c_str());
+    }
+    else
+    {
+        snprintf(buf, sizeof(buf), "ETA %s", nav.eta.c_str());
+    }
+    lv_label_set_text(navEta, buf);
+
+    if (navIcon == nullptr)
+    {
+        return;
+    }
+
+    if (!nav.hasIcon)
+    {
+        lv_obj_add_flag(navIcon, LV_OBJ_FLAG_HIDDEN);
+        navShownIcon = false;
+        return;
+    }
+
+    if (!navShownIcon || nav.iconCRC != navShownCrc)
+    {
+        // 48x48, 1 bit per pixel, 6 bytes per row, MSB first (assumed).
+        lv_canvas_fill_bg(navIcon, OV_BG, LV_OPA_COVER);
+        for (int y = 0; y < 48; ++y)
+        {
+            for (int x = 0; x < 48; ++x)
+            {
+                bool on = (nav.icon[y * 6 + (x >> 3)] >> (7 - (x & 7))) & 1;
+                if (NAV_ICON_INVERT)
+                {
+                    on = !on;
+                }
+                if (on)
+                {
+                    for (int dy = 0; dy < 2; ++dy)
+                    {
+                        for (int dx = 0; dx < 2; ++dx)
+                        {
+                            lv_canvas_set_px(navIcon, x * 2 + dx, y * 2 + dy, OV_TEXT, LV_OPA_COVER);
+                        }
+                    }
+                }
+            }
+        }
+        navShownCrc = nav.iconCRC;
+        navShownIcon = true;
+    }
+    lv_obj_clear_flag(navIcon, LV_OBJ_FLAG_HIDDEN);
 }

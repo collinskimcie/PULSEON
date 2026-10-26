@@ -32,6 +32,7 @@ private:
         PAGE_ALARMS,
         PAGE_FIND,
         PAGE_CAMERA,
+        PAGE_NAV,
         PAGE_COUNT
     };
 
@@ -43,6 +44,7 @@ private:
         ACT_OPEN_FIND,
         ACT_OPEN_CAMERA,
         ACT_OPEN_ALERTS,
+        ACT_OPEN_NAV,
         ACT_CLOSE,
         ACT_BACK,
         ACT_MUSIC_PREV,
@@ -75,6 +77,8 @@ private:
     void buildAlarms();
     void buildFind();
     void buildCamera();
+    void buildNav();
+    void refreshNav();
 
     void showPage(Page page);
     void refreshWeather();
@@ -99,6 +103,15 @@ private:
     lv_obj_t* findStatus = nullptr;
     lv_obj_t* findButtonLabel = nullptr;
     lv_obj_t* cameraStatus = nullptr;
+
+    lv_obj_t* navIcon = nullptr;
+    lv_obj_t* navTitle = nullptr;
+    lv_obj_t* navDirections = nullptr;
+    lv_obj_t* navInfo = nullptr;
+    lv_obj_t* navEta = nullptr;
+    uint16_t* navPixels = nullptr;
+    uint32_t navShownCrc = 0;
+    bool navShownIcon = false;
 
     bool findingPhone = false;
 

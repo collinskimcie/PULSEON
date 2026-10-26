@@ -1,3 +1,7 @@
+#ifndef PULSEON_MEM_LOG
+#define PULSEON_MEM_LOG 0
+#endif
+
 #include <Arduino.h>
 #include <esp_task_wdt.h>
 #include <lvgl.h>
@@ -43,13 +47,13 @@ static void logLvglMemory(const char* tag)
 {
     lv_mem_monitor_t m;
     lv_mem_monitor(&m);
-    Serial.printf("[MEM] %s: LVGL pool %u%% used, free %u of %u, biggest block %u | heap free %u\n",
+    if (PULSEON_MEM_LOG) Serial.printf("[MEM] %s: LVGL pool %u%% used, free %u of %u, biggest block %u | heap free %u\n",
                   tag, static_cast<unsigned>(m.used_pct),
                   static_cast<unsigned>(m.free_size),
                   static_cast<unsigned>(m.total_size),
                   static_cast<unsigned>(m.free_biggest_size),
                   static_cast<unsigned>(ESP.getFreeHeap()));
-    Serial.printf("[MEM] PSRAM total %u, free %u\n",
+    if (PULSEON_MEM_LOG) Serial.printf("[MEM] PSRAM total %u, free %u\n",
                   static_cast<unsigned>(ESP.getPsramSize()),
                   static_cast<unsigned>(ESP.getFreePsram()));
 }
