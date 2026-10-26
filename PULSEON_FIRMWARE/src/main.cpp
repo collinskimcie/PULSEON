@@ -21,7 +21,7 @@ UIManager uiManager;
 RTC_DATA_ATTR static uint8_t displayFailures = 0;
 
 // Shows a built-in notification with emoji at boot. Set to false when done testing.
-constexpr bool kEmojiSelfTest = true;
+constexpr bool kEmojiSelfTest = false;
 
 static const char* resetReasonName(esp_reset_reason_t reason)
 {

@@ -592,6 +592,27 @@ void ChronosManager::handleConfiguration(Config config, uint32_t a, uint32_t b)
             updateQr();
             break;
 
+        case CF_QUIET:
+        {
+            const uint8_t sh = (b >> 24) & 0xFF;
+            const uint8_t sm = (b >> 16) & 0xFF;
+            const uint8_t eh = (b >> 8) & 0xFF;
+            const uint8_t em = b & 0xFF;
+            if (sh < 24 && sm < 60 && eh < 24 && em < 60)
+            {
+                appState->setQuietHours(a != 0, sh, sm, eh, em);
+                Serial.printf("[CHRONOS] Quiet hours: %s %02u:%02u-%02u:%02u\n", a != 0 ? "ON" : "OFF",
+                              static_cast<unsigned>(sh), static_cast<unsigned>(sm),
+                              static_cast<unsigned>(eh), static_cast<unsigned>(em));
+            }
+            else
+            {
+                Serial.printf("[CHRONOS] Quiet hours value not understood: a=%lu b=0x%08lX\n",
+                              static_cast<unsigned long>(a), static_cast<unsigned long>(b));
+            }
+            break;
+        }
+
         case CF_APP:
             appState->setAppVersion(watch.getAppVersion());
             break;

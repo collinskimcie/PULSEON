@@ -68,6 +68,7 @@ struct PulseonAppState
     PulseonNotification notifications[PULSEON_MAX_NOTIFICATIONS];
     uint8_t notificationStored = 0;
     uint8_t notificationHead = 0;
+    uint32_t notificationSeq = 0;
 
     // Calls
     bool callActive = false;
@@ -118,6 +119,13 @@ struct PulseonAppState
 
     // UI state
     uint8_t activeScreen = 0;
+
+    // Quiet hours (from the Chronos app)
+    bool quietEnabled = false;
+    uint8_t quietStartHour = 22;
+    uint8_t quietStartMinute = 0;
+    uint8_t quietEndHour = 7;
+    uint8_t quietEndMinute = 0;
 };
 
 class AppStateManager
@@ -170,6 +178,9 @@ public:
         int icon = 0
     );
     void clearNotifications();
+    void removeNotification(uint8_t index);
+    void setQuietHours(bool enabled, uint8_t startHour, uint8_t startMinute,
+                       uint8_t endHour, uint8_t endMinute);
     const PulseonNotification* getNotification(uint8_t index) const;
 
     void setIncomingCall(const String& caller, bool active);

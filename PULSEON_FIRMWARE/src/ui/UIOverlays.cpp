@@ -2,6 +2,7 @@
 #include "UIText.h"
 
 #include <stdio.h>
+#include <time.h>
 
 #include "PULSEON_WATCH_UI.h"
 #include "../chronos/ChronosManager.h"
@@ -119,6 +120,7 @@ void UIOverlays::begin(AppStateManager* state, ChronosManager* chronosManager)
         lastNotifHead = st.notificationHead;
         lastNotifStored = st.notificationStored;
         lastFindEvent = st.findWatchEventId;
+        lastNotifSeq = st.notificationSeq;
     }
 
     buildBanner();
@@ -268,7 +270,9 @@ void UIOverlays::poll()
 
         Serial.println("[UI] showing banner");
         const PulseonNotification* newest = appState->getNotification(0);
-        if (newest != nullptr && !callVisible && !alarmVisible && !historyVisible)
+        const bool fresh = st.notificationSeq != lastNotifSeq;
+        lastNotifSeq = st.notificationSeq;
+        if (fresh && newest != nullptr && !callVisible && !alarmVisible && !historyVisible && !quietNow(st))
         {
             showBanner(*newest);
         }
@@ -404,6 +408,22 @@ void UIOverlays::rebuildHistory()
 
         lv_obj_t* card = makePanel(historyList, 0, 0, 224, 80, OV_CARD, 14);
 
+        deleteCtx[i].self = this;
+        deleteCtx[i].index = i;
+        lv_obj_t* del = lv_button_create(card);
+        lv_obj_set_pos(del, 186, 4);
+        lv_obj_set_size(del, 32, 26);
+        lv_obj_set_style_bg_color(del, OV_CARD_ALT, 0);
+        lv_obj_set_style_border_width(del, 0, 0);
+        lv_obj_set_style_shadow_width(del, 0, 0);
+        lv_obj_set_style_radius(del, 13, 0);
+        lv_obj_add_event_cb(del, historyDeleteClicked, LV_EVENT_CLICKED, &deleteCtx[i]);
+        lv_obj_t* mark = lv_label_create(del);
+        lv_label_set_text(mark, "X");
+        lv_obj_set_style_text_font(mark, font_body, 0);
+        lv_obj_set_style_text_color(mark, OV_MUTED, 0);
+        lv_obj_center(mark);
+
         String header = n->app;
         if (n->time.length() > 0)
         {
@@ -411,8 +431,8 @@ void UIOverlays::rebuildHistory()
             header += n->time;
         }
 
-        makeLabel(card, uiText(header).c_str(), 12, 6, 200, 16, font_body, OV_MUTED);
-        makeLabel(card, uiText(n->title).c_str(), 12, 22, 200, 22, uiEmojiFont(font_h5), OV_TEXT);
+        makeLabel(card, uiText(header).c_str(), 12, 6, 168, 16, font_body, OV_MUTED);
+        makeLabel(card, uiText(n->title).c_str(), 12, 22, 168, 22, uiEmojiFont(font_h5), OV_TEXT);
         makeLabel(card, uiText(n->message).c_str(), 12, 44, 200, 32, uiEmojiFont(font_body), OV_MUTED,
                   LV_TEXT_ALIGN_LEFT, LV_LABEL_LONG_WRAP);
     }
@@ -617,4 +637,43 @@ void UIOverlays::findDismissClicked(lv_event_t* event)
     {
         self->hideFind();
     }
+}
+
+bool UIOverlays::quietNow(const PulseonAppState& st) const
+{
+    if (!st.quietEnabled || !st.clockSynced)
+    {
+        return false;
+    }
+
+    time_t current;
+    if (time(&current) == static_cast<time_t>(-1))
+    {
+        return false;
+    }
+    struct tm info;
+    if (localtime_r(&current, &info) == nullptr)
+    {
+        return false;
+    }
+
+    const int now = info.tm_hour * 60 + info.tm_min;
+    const int start = st.quietStartHour * 60 + st.quietStartMinute;
+    const int end = st.quietEndHour * 60 + st.quietEndMinute;
+    if (start == end)
+    {
+        return false;
+    }
+    return start < end ? (now >= start && now < end) : (now >= start || now < end);
+}
+
+void UIOverlays::historyDeleteClicked(lv_event_t* event)
+{
+    DeleteCtx* ctx = static_cast<DeleteCtx*>(lv_event_get_user_data(event));
+    if (ctx == nullptr || ctx->self == nullptr || ctx->self->appState == nullptr)
+    {
+        return;
+    }
+    // poll() sees the list change and rebuilds the cards outside this event.
+    ctx->self->appState->removeNotification(ctx->index);
 }

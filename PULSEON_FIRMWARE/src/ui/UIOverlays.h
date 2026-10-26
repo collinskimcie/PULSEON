@@ -27,6 +27,8 @@ private:
     static void bannerTimerCallback(lv_timer_t* timer);
 
     void buildBanner();
+    bool quietNow(const PulseonAppState& st) const;
+    static void historyDeleteClicked(lv_event_t* event);
     void buildHistory();
     void buildCall();
     void buildAlarm();
@@ -69,6 +71,14 @@ private:
     uint8_t findPhase = 0;
     uint32_t findStartMs = 0;
     uint32_t lastFindEvent = 0;
+
+    struct DeleteCtx
+    {
+        UIOverlays* self;
+        uint8_t index;
+    };
+    DeleteCtx deleteCtx[PULSEON_MAX_NOTIFICATIONS] = {};
+    uint32_t lastNotifSeq = 0;
 
     bool historyVisible = false;
     bool callVisible = false;

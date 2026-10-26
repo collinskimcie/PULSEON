@@ -34,6 +34,7 @@ void AppStateManager::addNotification(
     int icon
 )
 {
+    ++state.notificationSeq;
     state.notificationHead =
         (state.notificationHead + 1) % PULSEON_MAX_NOTIFICATIONS;
 
@@ -195,4 +196,53 @@ void AppStateManager::requestFindWatch()
 void AppStateManager::setAppVersion(const String& version)
 {
     state.appVersion = version;
+}
+
+void AppStateManager::removeNotification(uint8_t index)
+{
+    if (index >= state.notificationStored)
+    {
+        return;
+    }
+
+    // Keep everything except `index`, newest first.
+    PulseonNotification keep[PULSEON_MAX_NOTIFICATIONS];
+    uint8_t kept = 0;
+    for (uint8_t i = 0; i < state.notificationStored; ++i)
+    {
+        if (i == index)
+        {
+            continue;
+        }
+        const PulseonNotification* n = getNotification(i);
+        if (n != nullptr)
+        {
+            keep[kept++] = *n;
+        }
+    }
+
+    for (uint8_t i = 0; i < PULSEON_MAX_NOTIFICATIONS; ++i)
+    {
+        state.notifications[i] = PulseonNotification();
+    }
+    state.notificationHead = 0;
+    state.notificationStored = 0;
+
+    // Rewrite oldest first so getNotification(0) is still the newest.
+    for (int i = static_cast<int>(kept) - 1; i >= 0; --i)
+    {
+        state.notificationHead = (state.notificationHead + 1) % PULSEON_MAX_NOTIFICATIONS;
+        state.notifications[state.notificationHead] = keep[i];
+        ++state.notificationStored;
+    }
+}
+
+void AppStateManager::setQuietHours(bool enabled, uint8_t startHour, uint8_t startMinute,
+                                    uint8_t endHour, uint8_t endMinute)
+{
+    state.quietEnabled = enabled;
+    state.quietStartHour = startHour;
+    state.quietStartMinute = startMinute;
+    state.quietEndHour = endHour;
+    state.quietEndMinute = endMinute;
 }
