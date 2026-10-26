@@ -43,6 +43,7 @@ struct HomeData
     char weather[16] = "";
     char nextAlarm[8] = "--:--";
     uint8_t notifCount = 0;
+    bool timeValid = false;  // false until the phone has synced the clock
 };
 
 // Fills `panel` with one face. Call once per face after the panel exists.

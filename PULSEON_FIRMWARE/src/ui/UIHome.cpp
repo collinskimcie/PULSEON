@@ -89,6 +89,7 @@ lv_obj_t* mkPanel(lv_obj_t* parent, int w, int h, lv_color_t bg, int radius)
     lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
     lv_obj_set_style_radius(o, radius, 0);
     lv_obj_clear_flag(o, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(o, LV_OBJ_FLAG_CLICKABLE);
     return o;
 }
 
@@ -139,6 +140,7 @@ lv_obj_t* mkChipRow(lv_obj_t* parent, int w, int h, int bottomGap)
     lv_obj_set_style_pad_column(row, 6, 0);
     lv_obj_set_style_pad_row(row, 6, 0);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_align(row, LV_ALIGN_BOTTOM_MID, 0, -bottomGap);
     return row;
 }
@@ -154,6 +156,7 @@ lv_obj_t* mkChip(lv_obj_t* row, lv_color_t accent, lv_obj_t** label)
     lv_obj_set_style_pad_hor(chip, 10, 0);
     lv_obj_set_style_pad_ver(chip, 5, 0);
     lv_obj_clear_flag(chip, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(chip, LV_OBJ_FLAG_CLICKABLE);
     *label = mkLabel(chip, LV_FONT_DEFAULT, accent, "--");
     return chip;
 }
@@ -218,6 +221,7 @@ void buildToday(lv_obj_t* p)
     lv_obj_set_size(u.batBar, cw - 24, 6);
     lv_bar_set_range(u.batBar, 0, 100);
     lv_bar_set_value(u.batBar, 0, LV_ANIM_OFF);
+    lv_obj_clear_flag(u.batBar, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_bg_color(u.batBar, col.bg, LV_PART_MAIN);
     lv_obj_set_style_bg_color(u.batBar, col.a3, LV_PART_INDICATOR);
     lv_obj_set_style_radius(u.batBar, 3, LV_PART_MAIN);
@@ -329,6 +333,11 @@ void uiHomeUpdate(const HomeData& d)
     {
         strcpy(bat, "--");
     }
+    if (!d.timeValid)
+    {
+        strcpy(tm, "--:--");
+        strcpy(date, "-- -- --");
+    }
     snprintf(num, sizeof(num), "%d", (int)d.notifCount);
     const int batVal = d.battery >= 0 ? d.battery : 0;
     const int notVal = d.notifCount > 10 ? 10 : d.notifCount;
@@ -372,6 +381,11 @@ void uiHomeUpdate(const HomeData& d)
         char hh[4], mm[4];
         snprintf(hh, sizeof(hh), "%02d", (int)d.hour);
         snprintf(mm, sizeof(mm), "%02d", (int)d.minute);
+        if (!d.timeValid)
+        {
+            strcpy(hh, "--");
+            strcpy(mm, "--");
+        }
         setText(s.date, date);
         setText(s.hour, hh);
         setText(s.min, mm);

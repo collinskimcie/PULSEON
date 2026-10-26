@@ -176,7 +176,7 @@ void UIManager::begin(AppStateManager* state)
         Serial.println("[UI] WARNING: Could not load saved home face; using face 1");
         selectedHomeFace = 0;
     }
-    if (selectedHomeFace >= 6)
+    if (selectedHomeFace >= 9)
     {
         selectedHomeFace = 0;
     }
@@ -295,6 +295,25 @@ void UIManager::connectionToastTimerCallback(lv_timer_t* timer)
     lv_timer_pause(timer);
 }
 
+static HomeColors homeColorsFor(uint8_t themeIndex)
+{
+    if (themeIndex >= UI_PALETTE_COUNT)
+    {
+        themeIndex = 0;
+    }
+    const UIPalette& p = UI_PALETTES[themeIndex];
+    HomeColors c;
+    c.bg = lv_color_hex(p.bg);
+    c.card = lv_color_hex(p.card);
+    c.text = lv_color_hex(p.text);
+    c.dim = lv_color_hex(p.muted);
+    c.a1 = lv_color_hex(p.tile[0]);
+    c.a2 = lv_color_hex(p.tile[1]);
+    c.a3 = lv_color_hex(p.tile[2]);
+    c.a4 = lv_color_hex(p.tile[3]);
+    return c;
+}
+
 void UIManager::createFacePicker()
 {
     facePickerRoot = lv_obj_create(nullptr);
@@ -320,7 +339,10 @@ void UIManager::createFacePicker()
         "TOPO V2",
         "GLASSMORPH V2",
         "CIRCUIT BLUEPRINT",
-        "HOLOGRAPHIC PRISM"
+        "HOLOGRAPHIC PRISM",
+        "ORBIT RINGS",
+        "TODAY CARDS",
+        "STACKED TIME"
     };
     const char* descriptions[] =
     {
@@ -329,14 +351,24 @@ void UIManager::createFacePicker()
         "Contour-map style",
         "Soft glass and color",
         "Technical circuit board",
-        "Prismatic digital time"
+        "Prismatic digital time",
+        "Rings for time and phone",
+        "Colored status cards",
+        "Two-tone stacked clock"
     };
 
-    for (uint8_t face = 0; face < 6; ++face)
+    lv_obj_t* faceList = lv_obj_create(facePickerRoot);
+    lv_obj_remove_style_all(faceList);
+    lv_obj_set_pos(faceList, MARGIN, 61);
+    lv_obj_set_size(faceList, CONTENT_WIDTH, 220);
+    lv_obj_set_scroll_dir(faceList, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(faceList, LV_SCROLLBAR_MODE_OFF);
+
+    for (uint8_t face = 0; face < 9; ++face)
     {
-        lv_obj_t* button = lv_button_create(facePickerRoot);
-        const int32_t y = 61 + static_cast<int32_t>(face) * 36;
-        lv_obj_set_pos(button, MARGIN, y);
+        lv_obj_t* button = lv_button_create(faceList);
+        const int32_t y = static_cast<int32_t>(face) * 36;
+        lv_obj_set_pos(button, 0, y);
         lv_obj_set_size(button, CONTENT_WIDTH, 32);
         styleButton(button, face == selectedHomeFace);
         faceSelectionButtons[face] = button;
@@ -383,6 +415,21 @@ lv_obj_t* UIManager::createScreen(Screen screen)
             for (uint8_t face = 0; face < 6; ++face)
             {
                 homeFaces[face] = createFacePanel(root, face);
+            }
+
+            homeThemeIndex = uiThemeLoad();
+            for (uint8_t kind = 0; kind < HOME_FACE_KINDS; ++kind)
+            {
+                lv_obj_t* panel = lv_obj_create(root);
+                lv_obj_set_pos(panel, 0, 0);
+                lv_obj_set_size(panel, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+                lv_obj_set_style_border_width(panel, 0, 0);
+                lv_obj_set_style_radius(panel, 0, 0);
+                lv_obj_set_style_pad_all(panel, 0, 0);
+                lv_obj_add_flag(panel, LV_OBJ_FLAG_EVENT_BUBBLE);
+                lv_obj_add_flag(panel, LV_OBJ_FLAG_HIDDEN);
+                homeFaces[6 + kind] = panel;
+                uiHomeBuildFace(panel, kind, homeColorsFor(homeThemeIndex));
             }
 
             lv_obj_t* brutalist = homeFaces[0];
@@ -561,7 +608,7 @@ void UIManager::showScreen(Screen screen, bool fade)
 
 void UIManager::applyHomeFace()
 {
-    for (uint8_t face = 0; face < 6; ++face)
+    for (uint8_t face = 0; face < 9; ++face)
     {
         if (homeFaces[face] != nullptr)
         {
@@ -602,7 +649,7 @@ void UIManager::selectHomeFaceCallback(lv_event_t* event)
 {
     FaceSelectionContext* selection =
         static_cast<FaceSelectionContext*>(lv_event_get_user_data(event));
-    if (selection == nullptr || selection->manager == nullptr || selection->face >= 6)
+    if (selection == nullptr || selection->manager == nullptr || selection->face >= 9)
     {
         return;
     }
@@ -823,6 +870,80 @@ void UIManager::updateScreens()
         {
             lv_label_set_text(faceOxygen[5], "--% O2");
         }
+    }
+
+    {
+        HomeData home;
+        int nowMinutes = -1;
+        time_t homeNow;
+        if (state.clockSynced && time(&homeNow) != static_cast<time_t>(-1))
+        {
+            struct tm homeInfo;
+            if (localtime_r(&homeNow, &homeInfo) != nullptr)
+            {
+                uint8_t hour = static_cast<uint8_t>(homeInfo.tm_hour);
+                nowMinutes = homeInfo.tm_hour * 60 + homeInfo.tm_min;
+                if (!state.is24Hour)
+                {
+                    hour = (hour % 12 == 0) ? 12 : (hour % 12);
+                }
+                home.timeValid = true;
+                home.hour = hour;
+                home.minute = static_cast<uint8_t>(homeInfo.tm_min);
+                home.second = static_cast<uint8_t>(homeInfo.tm_sec);
+                home.weekday = static_cast<uint8_t>(homeInfo.tm_wday);
+                home.day = static_cast<uint8_t>(homeInfo.tm_mday);
+                home.month = static_cast<uint8_t>(homeInfo.tm_mon + 1);
+            }
+        }
+        if (state.phoneConnected)
+        {
+            home.battery = static_cast<int8_t>(state.phoneBattery > 100 ? 100 : state.phoneBattery);
+        }
+        if (state.weatherAvailable)
+        {
+            home.hasTemp = true;
+            home.tempC = static_cast<int8_t>(state.weatherTemperature);
+        }
+        strncpy(home.weather, state.weatherCity.c_str(), sizeof(home.weather) - 1);
+
+        int best = -1;
+        int bestWait = 24 * 60 + 1;
+        for (uint8_t i = 0; i < PULSEON_MAX_ALARMS; ++i)
+        {
+            const PulseonAlarm& alarm = state.alarms[i];
+            if (!alarm.enabled)
+            {
+                continue;
+            }
+            const int minutes = alarm.hour * 60 + alarm.minute;
+            const int wait = (nowMinutes >= 0) ? (minutes - nowMinutes + 1440) % 1440 : minutes;
+            if (wait < bestWait)
+            {
+                bestWait = wait;
+                best = i;
+            }
+        }
+        if (best >= 0)
+        {
+            snprintf(home.nextAlarm, sizeof(home.nextAlarm), "%02u:%02u",
+                     static_cast<unsigned>(state.alarms[best].hour),
+                     static_cast<unsigned>(state.alarms[best].minute));
+        }
+        home.notifCount = state.notificationStored;
+
+        const uint32_t pollNow = millis();
+        if (pollNow - lastThemePollMs >= 1000)
+        {
+            lastThemePollMs = pollNow;
+            const uint8_t themeNow = uiThemeLoad();
+            if (themeNow != homeThemeIndex)
+            {
+                homeThemeIndex = themeNow;
+                uiHomeRecolor(homeColorsFor(homeThemeIndex));
+            }
+        }
+        uiHomeUpdate(home);
     }
 
 }

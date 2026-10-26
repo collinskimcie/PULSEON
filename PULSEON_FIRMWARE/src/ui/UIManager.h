@@ -7,6 +7,8 @@
 #include "UIOverlays.h"
 #include "UIApps.h"
 #include "UISystem.h"
+#include "UIHome.h"
+#include "UITheme.h"
 
 class ChronosManager;
 
@@ -57,10 +59,12 @@ private:
     lv_obj_t* connectionToast = nullptr;
     lv_obj_t* connectionToastLabel = nullptr;
     lv_timer_t* connectionToastTimer = nullptr;
-    lv_obj_t* homeFaces[6] = {};
-    lv_obj_t* faceSelectionButtons[6] = {};
-    FaceSelectionContext faceSelectionContexts[6] = {};
+    lv_obj_t* homeFaces[9] = {};
+    lv_obj_t* faceSelectionButtons[9] = {};
+    FaceSelectionContext faceSelectionContexts[9] = {};
     uint8_t selectedHomeFace = 0;
+    uint8_t homeThemeIndex = 0;
+    uint32_t lastThemePollMs = 0;
 
     lv_obj_t* faceClock[6] = {};
     lv_obj_t* faceDate[6] = {};
