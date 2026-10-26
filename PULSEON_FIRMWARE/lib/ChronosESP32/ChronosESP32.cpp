@@ -479,6 +479,10 @@ bool ChronosESP32::isAnyAlarmActive()
 	@param  force_chunked
 			override internal chunked
 */
+#ifndef CS_NOTIFY_DELAY_MS
+#define CS_NOTIFY_DELAY_MS 30
+#endif
+
 void ChronosESP32::sendCommand(uint8_t *command, size_t length, bool force_chunked)
 {
 	if (!_inited)
@@ -492,14 +496,14 @@ void ChronosESP32::sendCommand(uint8_t *command, size_t length, bool force_chunk
 		// Send the entire command if it fits in one packet
 		pCharacteristicTX->setValue(command, length);
 		pCharacteristicTX->notify();
-		vTaskDelay(200 / portTICK_PERIOD_MS);
+		vTaskDelay(CS_NOTIFY_DELAY_MS / portTICK_PERIOD_MS);
 	}
 	else
 	{
 		// Send the first 20 bytes as is (no header)
 		pCharacteristicTX->setValue(command, 20);
 		pCharacteristicTX->notify();
-		vTaskDelay(200 / portTICK_PERIOD_MS);
+		vTaskDelay(CS_NOTIFY_DELAY_MS / portTICK_PERIOD_MS);
 
 		// Send the remaining bytes with a header
 		const size_t maxPayloadSize = 19; // Payload size excluding header
@@ -521,7 +525,7 @@ void ChronosESP32::sendCommand(uint8_t *command, size_t length, bool force_chunk
 			// Send the chunk
 			pCharacteristicTX->setValue(chunk, bytesToSend + 1);
 			pCharacteristicTX->notify();
-			vTaskDelay(200 / portTICK_PERIOD_MS);
+			vTaskDelay(CS_NOTIFY_DELAY_MS / portTICK_PERIOD_MS);
 
 			// Update offset
 			offset += bytesToSend;
