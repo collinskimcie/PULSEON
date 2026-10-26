@@ -67,6 +67,7 @@ private:
         HealthRequest health{};
         Notification notification;
         String text;
+        uint32_t queuedMs = 0;
     };
 
     static constexpr uint8_t kQueueSize = 16;

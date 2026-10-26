@@ -252,6 +252,7 @@ void UIOverlays::poll()
             rebuildHistory();
         }
 
+        Serial.println("[UI] showing banner");
         const PulseonNotification* newest = appState->getNotification(0);
         if (newest != nullptr && !callVisible && !alarmVisible && !historyVisible)
         {
@@ -431,6 +432,7 @@ void UIOverlays::historyClearClicked(lv_event_t* event)
 
 void UIOverlays::showCall(const String& caller)
 {
+    Serial.println("[UI] showing call");
     lastCallName = caller;
     lv_label_set_text(callName, caller.length() > 0 ? caller.c_str() : "Unknown");
 

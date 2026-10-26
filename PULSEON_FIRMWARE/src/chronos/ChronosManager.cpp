@@ -275,7 +275,9 @@ void ChronosManager::push(const Event& ev)
     xSemaphoreTake(queueMutex, portMAX_DELAY);
     if (queueCount < kQueueSize)
     {
-        queue[(queueHead + queueCount) % kQueueSize] = ev;
+        Event& slot = queue[(queueHead + queueCount) % kQueueSize];
+        slot = ev;
+        slot.queuedMs = millis();
         ++queueCount;
     }
     else
@@ -308,6 +310,11 @@ bool ChronosManager::pop(Event& ev)
 
 void ChronosManager::dispatch(const Event& ev)
 {
+    if (ev.type == Event::NOTIFICATION || ev.type == Event::RINGER)
+    {
+        Serial.printf("[CHRONOS] queue wait %lu ms\n", static_cast<unsigned long>(millis() - ev.queuedMs));
+    }
+
     switch (ev.type)
     {
         case Event::CONNECTION:   handleConnection(ev.flag); break;
