@@ -45,6 +45,7 @@ private:
         ACT_OPEN_CAMERA,
         ACT_OPEN_ALERTS,
         ACT_OPEN_NAV,
+        ACT_THEME,
         ACT_CLOSE,
         ACT_BACK,
         ACT_MUSIC_PREV,
@@ -79,6 +80,7 @@ private:
     void buildCamera();
     void buildNav();
     void refreshNav();
+    void cycleTheme();
 
     void showPage(Page page);
     void refreshWeather();

@@ -6,18 +6,113 @@
 #include "PULSEON_WATCH_UI.h"
 #include "UIOverlays.h"
 #include "UIText.h"
+#include "UITheme.h"
 #include "../chronos/ChronosManager.h"
 
 namespace
 {
-const lv_color_t OV_BG = lv_color_hex(0x090A0E);
-const lv_color_t OV_CARD = lv_color_hex(0x15161C);
-const lv_color_t OV_CARD_ALT = lv_color_hex(0x25262D);
-const lv_color_t OV_TEXT = lv_color_hex(0xF7F7FA);
-const lv_color_t OV_MUTED = lv_color_hex(0xA8A3AB);
-const lv_color_t OV_ACCENT = lv_color_hex(0xFF5D6C);
-const lv_color_t OV_ACCENT_DARK = lv_color_hex(0x54252D);
-const lv_color_t OV_GOOD = lv_color_hex(0x75D6B1);
+lv_color_t OV_BG, OV_BG2, OV_CARD, OV_CARD_ALT, OV_TEXT, OV_MUTED, OV_ACCENT, OV_ACCENT_DARK, OV_GOOD;
+lv_color_t OV_TILE[8];
+uint8_t themeIndex = 0;
+
+void loadPalette(const UIPalette& p)
+{
+    OV_BG = lv_color_hex(p.bg);
+    OV_BG2 = lv_color_hex(p.bg2);
+    OV_CARD = lv_color_hex(p.card);
+    OV_CARD_ALT = lv_color_hex(p.cardAlt);
+    OV_TEXT = lv_color_hex(p.text);
+    OV_MUTED = lv_color_hex(p.muted);
+    OV_ACCENT = lv_color_hex(p.accent);
+    OV_ACCENT_DARK = lv_color_hex(p.accentDark);
+    OV_GOOD = lv_color_hex(p.good);
+    for (uint8_t i = 0; i < 8; ++i)
+    {
+        OV_TILE[i] = lv_color_hex(p.tile[i]);
+    }
+}
+
+// Maps every color of the old palette to the new one on all existing objects.
+struct Remap
+{
+    uint32_t bgFrom[12];
+    uint32_t bgTo[12];
+    uint8_t bgCount = 0;
+    uint32_t txFrom[4];
+    uint32_t txTo[4];
+    uint32_t grFrom = 0;
+    uint32_t grTo = 0;
+};
+
+void addBg(Remap& m, uint32_t a, uint32_t b)
+{
+    if (a != b && m.bgCount < 12)
+    {
+        m.bgFrom[m.bgCount] = a;
+        m.bgTo[m.bgCount] = b;
+        ++m.bgCount;
+    }
+}
+
+Remap makeRemap(const UIPalette& from, const UIPalette& to)
+{
+    Remap m;
+    addBg(m, from.bg, to.bg);
+    addBg(m, from.card, to.card);
+    addBg(m, from.cardAlt, to.cardAlt);
+    addBg(m, from.accentDark, to.accentDark);
+    addBg(m, from.accent, to.accent);
+    for (uint8_t i = 1; i < 8; ++i)
+    {
+        addBg(m, from.tile[i], to.tile[i]);
+    }
+    m.txFrom[0] = from.text;   m.txTo[0] = to.text;
+    m.txFrom[1] = from.muted;  m.txTo[1] = to.muted;
+    m.txFrom[2] = from.accent; m.txTo[2] = to.accent;
+    m.txFrom[3] = from.good;   m.txTo[3] = to.good;
+    m.grFrom = from.bg2;
+    m.grTo = to.bg2;
+    return m;
+}
+
+uint32_t rgb(lv_color_t c)
+{
+    return lv_color_to_u32(c) & 0xFFFFFF;
+}
+
+void recolor(lv_obj_t* obj, const Remap& m)
+{
+    const uint32_t bg = rgb(lv_obj_get_style_bg_color(obj, LV_PART_MAIN));
+    for (uint8_t i = 0; i < m.bgCount; ++i)
+    {
+        if (bg == m.bgFrom[i])
+        {
+            lv_obj_set_style_bg_color(obj, lv_color_hex(m.bgTo[i]), 0);
+            break;
+        }
+    }
+
+    const uint32_t tx = rgb(lv_obj_get_style_text_color(obj, LV_PART_MAIN));
+    for (uint8_t i = 0; i < 4; ++i)
+    {
+        if (tx == m.txFrom[i])
+        {
+            lv_obj_set_style_text_color(obj, lv_color_hex(m.txTo[i]), 0);
+            break;
+        }
+    }
+
+    if (rgb(lv_obj_get_style_bg_grad_color(obj, LV_PART_MAIN)) == m.grFrom)
+    {
+        lv_obj_set_style_bg_grad_color(obj, lv_color_hex(m.grTo), 0);
+    }
+
+    const uint32_t count = lv_obj_get_child_count(obj);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        recolor(lv_obj_get_child(obj, i), m);
+    }
+}
 
 lv_obj_t* makeLabel(
     lv_obj_t* parent, const char* text, int32_t x, int32_t y, int32_t w, int32_t h,
@@ -84,6 +179,15 @@ void weekdayName(uint8_t offset, bool clockSynced, char* buf, size_t n)
     }
 }
 
+void decorateTile(lv_obj_t* button, lv_obj_t* label, lv_color_t accent)
+{
+    lv_obj_set_style_radius(button, 18, 0);
+    lv_obj_set_style_bg_opa(button, LV_OPA_70, LV_STATE_PRESSED);
+    lv_obj_align(label, LV_ALIGN_BOTTOM_LEFT, 12, -8);
+    lv_obj_t* dot = makePanel(button, 12, 10, 14, 14, accent, 7);
+    lv_obj_clear_flag(dot, LV_OBJ_FLAG_CLICKABLE);
+}
+
 void formatTime(uint8_t hour, uint8_t minute, bool is24, char* buf, size_t n)
 {
     if (is24)
@@ -107,6 +211,9 @@ void UIApps::begin(AppStateManager* state, ChronosManager* chronosManager, UIOve
     chronos = chronosManager;
     overlays = overlaysPtr;
 
+    themeIndex = uiThemeLoad();
+    loadPalette(UI_PALETTES[themeIndex]);
+
     for (uint8_t i = 0; i < ACT_COUNT; ++i)
     {
         actions[i].self = this;
@@ -126,7 +233,11 @@ lv_obj_t* UIApps::makeRoot(Page page, const char* title)
 {
     lv_obj_t* root = makePanel(lv_layer_top(), 0, 0, 240, 320, OV_BG, 0);
     lv_obj_add_flag(root, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_bg_grad_color(root, OV_BG2, 0);
+    lv_obj_set_style_bg_grad_dir(root, LV_GRAD_DIR_VER, 0);
     makeLabel(root, title, 16, 10, 208, 28, font_h4, OV_TEXT);
+    lv_obj_t* bar = makePanel(root, 16, 38, 36, 3, OV_ACCENT, 2);
+    lv_obj_clear_flag(bar, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(root, LV_OBJ_FLAG_HIDDEN);
     roots[page] = root;
     return root;
@@ -144,6 +255,7 @@ lv_obj_t* UIApps::addAction(
     lv_obj_set_style_border_width(button, 0, 0);
     lv_obj_set_style_shadow_width(button, 0, 0);
     lv_obj_set_style_radius(button, h / 2 > 22 ? 22 : h / 2, 0);
+    lv_obj_set_style_bg_opa(button, LV_OPA_70, LV_STATE_PRESSED);
     lv_obj_add_event_cb(button, actionClicked, LV_EVENT_CLICKED, &actions[act]);
 
     lv_obj_t* label = lv_label_create(button);
@@ -159,11 +271,12 @@ void UIApps::buildApps()
     lv_obj_t* root = makeRoot(PAGE_APPS, "APPS");
 
     struct Tile { const char* text; Act act; };
-    const Tile tiles[7] = {
+    const Tile tiles[8] = {
         {"Music", ACT_OPEN_MUSIC},     {"Weather", ACT_OPEN_WEATHER},
         {"Alarms", ACT_OPEN_ALARMS},   {"Find phone", ACT_OPEN_FIND},
         {"Camera", ACT_OPEN_CAMERA},   {"Alerts", ACT_OPEN_ALERTS},
         {"Navigate", ACT_OPEN_NAV},
+        {"Theme", ACT_THEME},
     };
 
     tileArea = lv_obj_create(root);
@@ -175,15 +288,16 @@ void UIApps::buildApps()
     lv_obj_set_style_pad_all(tileArea, 0, 0);
     lv_obj_set_scroll_dir(tileArea, LV_DIR_VER);
 
-    for (uint8_t i = 0; i < 7; ++i)
+    for (uint8_t i = 0; i < 8; ++i)
     {
         const int32_t x = 12 + (i % 2) * 112;
         const int32_t y = 4 + (i / 2) * 72;
-        addAction(tileArea, tiles[i].text, x, y, 104, 62, OV_CARD, OV_TEXT, tiles[i].act);
+        lv_obj_t* tileButton = addAction(tileArea, tiles[i].text, x, y, 104, 62, OV_CARD, OV_TEXT, tiles[i].act);
+        decorateTile(tileButton, lv_obj_get_child(tileButton, 0), OV_TILE[i]);
     }
-    tileCount = 7;
+    tileCount = 8;
 
-    addAction(root, "Close", 12, 268, 216, 44, OV_ACCENT_DARK, OV_ACCENT, ACT_CLOSE);
+    addAction(root, "Close", 12, 266, 216, 50, OV_ACCENT_DARK, OV_ACCENT, ACT_CLOSE);
 }
 
 void UIApps::buildMusic()
@@ -201,7 +315,7 @@ void UIApps::buildMusic()
     makeLabel(root, "Controls the music player on your phone", 16, 190, 208, 44,
               font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER, LV_LABEL_LONG_WRAP);
 
-    addAction(root, "Back", 12, 268, 216, 44, OV_CARD_ALT, OV_TEXT, ACT_BACK);
+    addAction(root, "Back", 12, 266, 216, 50, OV_CARD_ALT, OV_TEXT, ACT_BACK);
 }
 
 void UIApps::buildWeather()
@@ -209,18 +323,18 @@ void UIApps::buildWeather()
     lv_obj_t* root = makeRoot(PAGE_WEATHER, "WEATHER");
 
     weatherCity = makeLabel(root, "", 16, 40, 208, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER);
-    weatherTemp = makeLabel(root, "--", 16, 60, 208, 56, font_h2, OV_TEXT, LV_TEXT_ALIGN_CENTER);
+    weatherTemp = makeLabel(root, "--", 16, 60, 208, 56, font_h2, OV_ACCENT, LV_TEXT_ALIGN_CENTER);
     weatherRange = makeLabel(root, "", 16, 118, 208, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER);
     weatherList = makeList(root, 8, 146, 224, 116);
 
-    addAction(root, "Back", 12, 268, 216, 44, OV_CARD_ALT, OV_TEXT, ACT_BACK);
+    addAction(root, "Back", 12, 266, 216, 50, OV_CARD_ALT, OV_TEXT, ACT_BACK);
 }
 
 void UIApps::buildAlarms()
 {
     lv_obj_t* root = makeRoot(PAGE_ALARMS, "ALARMS");
     alarmList = makeList(root, 8, 44, 224, 216);
-    addAction(root, "Back", 12, 268, 216, 44, OV_CARD_ALT, OV_TEXT, ACT_BACK);
+    addAction(root, "Back", 12, 266, 216, 50, OV_CARD_ALT, OV_TEXT, ACT_BACK);
 }
 
 void UIApps::buildFind()
@@ -233,7 +347,7 @@ void UIApps::buildFind()
                                  OV_ACCENT_DARK, OV_ACCENT, ACT_FIND_TOGGLE);
     findButtonLabel = lv_obj_get_child(button, 0);
 
-    addAction(root, "Back", 12, 268, 216, 44, OV_CARD_ALT, OV_TEXT, ACT_BACK);
+    addAction(root, "Back", 12, 266, 216, 50, OV_CARD_ALT, OV_TEXT, ACT_BACK);
 }
 
 void UIApps::buildCamera()
@@ -244,7 +358,7 @@ void UIApps::buildCamera()
                              LV_TEXT_ALIGN_CENTER, LV_LABEL_LONG_WRAP);
     addAction(root, "Take photo", 40, 130, 160, 56, OV_ACCENT_DARK, OV_ACCENT, ACT_CAMERA_SHOOT);
 
-    addAction(root, "Back", 12, 268, 216, 44, OV_CARD_ALT, OV_TEXT, ACT_BACK);
+    addAction(root, "Back", 12, 266, 216, 50, OV_CARD_ALT, OV_TEXT, ACT_BACK);
 }
 
 // ------------------------------------------------------------------
@@ -330,6 +444,7 @@ void UIApps::handle(uint8_t id)
         case ACT_OPEN_FIND:    showPage(PAGE_FIND); break;
         case ACT_OPEN_CAMERA:  showPage(PAGE_CAMERA); break;
         case ACT_OPEN_NAV:     showPage(PAGE_NAV); break;
+        case ACT_THEME:        cycleTheme(); break;
 
         case ACT_OPEN_ALERTS:
             showPage(PAGE_NONE);
@@ -415,8 +530,12 @@ void UIApps::refreshWeather()
         {
             weekdayName(i, st.clockSynced, name, sizeof(name));
         }
-        snprintf(buf, sizeof(buf), "%s   %d   H%d L%d", name, d.temp, d.high, d.low);
-        makeLabel(weatherList, buf, 0, 0, 220, 22, font_body, OV_TEXT);
+        lv_obj_t* row = makePanel(weatherList, 0, 0, 220, 30, OV_CARD, 12);
+        makeLabel(row, name, 12, 5, 90, 20, font_body, OV_TEXT);
+        snprintf(buf, sizeof(buf), "%d", d.temp);
+        makeLabel(row, buf, 100, 5, 40, 20, font_h5, OV_ACCENT, LV_TEXT_ALIGN_RIGHT);
+        snprintf(buf, sizeof(buf), "H%d  L%d", d.high, d.low);
+        makeLabel(row, buf, 146, 5, 68, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_RIGHT);
     }
 }
 
@@ -570,7 +689,7 @@ void UIApps::addTile(const char* text, TileHandler handler, void* user)
     lv_label_set_text(label, text);
     lv_obj_set_style_text_font(label, font_h5, 0);
     lv_obj_set_style_text_color(label, OV_TEXT, 0);
-    lv_obj_center(label);
+    decorateTile(button, label, OV_TILE[tileCount % 8]);
 
     ++tileCount;
 }
@@ -607,7 +726,7 @@ void UIApps::buildNav()
     navInfo = makeLabel(root, "", 12, 218, 216, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER);
     navEta = makeLabel(root, "", 12, 240, 216, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER);
 
-    addAction(root, "Back", 12, 268, 216, 44, OV_CARD_ALT, OV_TEXT, ACT_BACK);
+    addAction(root, "Back", 12, 266, 216, 50, OV_CARD_ALT, OV_TEXT, ACT_BACK);
 }
 
 void UIApps::refreshNav()
@@ -691,4 +810,24 @@ void UIApps::refreshNav()
         navShownIcon = true;
     }
     lv_obj_clear_flag(navIcon, LV_OBJ_FLAG_HIDDEN);
+}
+
+void UIApps::cycleTheme()
+{
+    const UIPalette& from = UI_PALETTES[themeIndex];
+    themeIndex = (themeIndex + 1) % UI_PALETTE_COUNT;
+    const UIPalette& to = UI_PALETTES[themeIndex];
+
+    const Remap m = makeRemap(from, to);
+    for (uint8_t i = PAGE_APPS; i < PAGE_COUNT; ++i)
+    {
+        if (roots[i] != nullptr)
+        {
+            recolor(roots[i], m);
+        }
+    }
+    loadPalette(to);
+    navShownIcon = false; // redraw the navigation icon in the new colors
+    uiThemeSave(themeIndex);
+    Serial.printf("[UI] Theme: %s\n", to.name);
 }

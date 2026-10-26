@@ -1,0 +1,48 @@
+#pragma once
+
+#include <Arduino.h>
+#include <Preferences.h>
+
+struct UIPalette
+{
+    const char* name;
+    uint32_t bg, bg2, card, cardAlt, text, muted, accent, accentDark, good;
+    uint32_t tile[8]; // tile[0] must equal accent
+};
+
+constexpr uint8_t UI_PALETTE_COUNT = 5;
+
+inline constexpr UIPalette UI_PALETTES[UI_PALETTE_COUNT] = {
+    {"Midnight", 0x090A0E, 0x181A24, 0x15161C, 0x25262D, 0xF7F7FA, 0xA8A3AB, 0xFF5D6C, 0x54252D, 0x75D6B1,
+     {0xFF5D6C, 0x5DB7FF, 0xFFC857, 0x75D6B1, 0xB48CFF, 0xFF9F5D, 0x5DE0E6, 0xF06EAA}},
+    {"Ocean", 0x06121C, 0x0C2A3F, 0x0F2638, 0x1B3D57, 0xEAF6FF, 0x8FB3C9, 0x2EC4F0, 0x113B52, 0x5FE3B0,
+     {0x2EC4F0, 0x6FA8FF, 0xFFD166, 0x5FE3B0, 0xA78BFA, 0xFF8FA3, 0x4DF0D0, 0xF59E0B}},
+    {"Forest", 0x08120C, 0x12301F, 0x14281D, 0x21412E, 0xEFF8F1, 0x9BB8A5, 0x57D68D, 0x1E4A32, 0x9BE564,
+     {0x57D68D, 0x6EC6FF, 0xF4D35E, 0x9BE564, 0xC49CFF, 0xFFA057, 0x4FD1C5, 0xF08CA8}},
+    {"Sunset", 0x140A0C, 0x2F1519, 0x2A161A, 0x44242B, 0xFFF3EC, 0xC7A59C, 0xFF8A4C, 0x5A2E1A, 0xFFD166,
+     {0xFF8A4C, 0xFFB86B, 0xFFD166, 0xFF6B81, 0xE58CFF, 0xFF5D6C, 0xFFA8A8, 0xF9C74F}},
+    {"Violet", 0x0D0A14, 0x241A3A, 0x1A1426, 0x2C2244, 0xF5F0FF, 0xB1A3CC, 0xB07CFF, 0x3A2A5E, 0x7CF0C8,
+     {0xB07CFF, 0x7CB8FF, 0xFFD27C, 0x7CF0C8, 0xFF7CC8, 0xFF9A7C, 0x7CE8FF, 0xE07CFF}},
+};
+
+inline uint8_t uiThemeLoad()
+{
+    Preferences p;
+    if (!p.begin("pulseon_ui", true))
+    {
+        return 0;
+    }
+    const uint8_t v = p.getUChar("theme", 0);
+    p.end();
+    return v < UI_PALETTE_COUNT ? v : 0;
+}
+
+inline void uiThemeSave(uint8_t v)
+{
+    Preferences p;
+    if (p.begin("pulseon_ui", false))
+    {
+        p.putUChar("theme", v);
+        p.end();
+    }
+}
