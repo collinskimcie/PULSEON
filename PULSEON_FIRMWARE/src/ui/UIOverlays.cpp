@@ -1,4 +1,5 @@
 #include "UIOverlays.h"
+#include "UIText.h"
 
 #include <stdio.h>
 
@@ -117,12 +118,14 @@ void UIOverlays::begin(AppStateManager* state, ChronosManager* chronosManager)
         const PulseonAppState& st = appState->getState();
         lastNotifHead = st.notificationHead;
         lastNotifStored = st.notificationStored;
+        lastFindEvent = st.findWatchEventId;
     }
 
     buildBanner();
     buildHistory();
     buildCall();
     buildAlarm();
+    buildFind();
 }
 
 void UIOverlays::buildBanner()
@@ -240,6 +243,17 @@ void UIOverlays::poll()
         lastAlarm = st.alarmRinging;
     }
 
+    // Find watch
+    if (st.findWatchEventId != lastFindEvent)
+    {
+        lastFindEvent = st.findWatchEventId;
+        showFind();
+    }
+    if (findVisible && millis() - findStartMs > 30000)
+    {
+        hideFind();
+    }
+
     // Notifications
     if (st.notificationHead != lastNotifHead ||
         st.notificationStored != lastNotifStored)
@@ -284,9 +298,11 @@ void UIOverlays::showBanner(const PulseonNotification& n)
         header += n.time;
     }
 
-    lv_label_set_text(bannerApp, header.c_str());
-    lv_label_set_text(bannerTitle, n.title.c_str());
-    lv_label_set_text(bannerText, n.message.c_str());
+    lv_obj_set_style_text_font(bannerTitle, uiEmojiFont(font_h5), 0);
+    lv_obj_set_style_text_font(bannerText, uiEmojiFont(font_body), 0);
+    lv_label_set_text(bannerApp, uiText(header).c_str());
+    lv_label_set_text(bannerTitle, uiText(n.title).c_str());
+    lv_label_set_text(bannerText, uiText(n.message).c_str());
 
     lv_obj_clear_flag(banner, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(banner);
@@ -395,9 +411,9 @@ void UIOverlays::rebuildHistory()
             header += n->time;
         }
 
-        makeLabel(card, header.c_str(), 12, 6, 200, 16, font_body, OV_MUTED);
-        makeLabel(card, n->title.c_str(), 12, 22, 200, 22, font_h5, OV_TEXT);
-        makeLabel(card, n->message.c_str(), 12, 44, 200, 32, font_body, OV_MUTED,
+        makeLabel(card, uiText(header).c_str(), 12, 6, 200, 16, font_body, OV_MUTED);
+        makeLabel(card, uiText(n->title).c_str(), 12, 22, 200, 22, uiEmojiFont(font_h5), OV_TEXT);
+        makeLabel(card, uiText(n->message).c_str(), 12, 44, 200, 32, uiEmojiFont(font_body), OV_MUTED,
                   LV_TEXT_ALIGN_LEFT, LV_LABEL_LONG_WRAP);
     }
 }
@@ -434,7 +450,9 @@ void UIOverlays::showCall(const String& caller)
 {
     Serial.println("[UI] showing call");
     lastCallName = caller;
-    lv_label_set_text(callName, caller.length() > 0 ? caller.c_str() : "Unknown");
+    lv_obj_set_style_text_font(callName, uiEmojiFont(font_h3), 0);
+    const String shownCaller = uiText(caller);
+    lv_label_set_text(callName, shownCaller.length() > 0 ? shownCaller.c_str() : "Unknown");
 
     hideBanner();
     lv_obj_clear_flag(callRoot, LV_OBJ_FLAG_HIDDEN);
@@ -523,5 +541,80 @@ void UIOverlays::alarmStopClicked(lv_event_t* event)
     if (self != nullptr && self->chronos != nullptr)
     {
         self->chronos->dismissAlarm();
+    }
+}
+
+void UIOverlays::buildFind()
+{
+    findRoot = makePanel(lv_layer_top(), 0, 0, 240, 320, OV_ACCENT_DARK, 0);
+    lv_obj_add_flag(findRoot, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(findRoot, findDismissClicked, LV_EVENT_CLICKED, this);
+
+    makeLabel(findRoot, "FIND WATCH", 16, 110, 208, 28, font_h4, OV_TEXT, LV_TEXT_ALIGN_CENTER);
+    makeLabel(findRoot, "Your phone is looking for me", 16, 150, 208, 40, font_body, OV_TEXT,
+              LV_TEXT_ALIGN_CENTER, LV_LABEL_LONG_WRAP);
+    makeLabel(findRoot, "Tap anywhere to stop", 16, 270, 208, 20, font_body, OV_MUTED,
+              LV_TEXT_ALIGN_CENTER);
+
+    lv_obj_add_flag(findRoot, LV_OBJ_FLAG_HIDDEN);
+
+    findTimer = lv_timer_create(findTimerCallback, 700, this);
+    lv_timer_pause(findTimer);
+}
+
+void UIOverlays::showFind()
+{
+    if (findRoot == nullptr)
+    {
+        return;
+    }
+
+    Serial.println("[UI] find watch requested");
+    findStartMs = millis();
+    findPhase = 0;
+    findVisible = true;
+
+    lv_obj_set_style_bg_color(findRoot, OV_ACCENT_DARK, 0);
+    lv_obj_clear_flag(findRoot, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(findRoot);
+
+    // Calls and alarms stay on top.
+    if (callVisible) lv_obj_move_foreground(callRoot);
+    if (alarmVisible) lv_obj_move_foreground(alarmRoot);
+
+    lv_timer_reset(findTimer);
+    lv_timer_resume(findTimer);
+}
+
+void UIOverlays::hideFind()
+{
+    if (findRoot != nullptr)
+    {
+        lv_obj_add_flag(findRoot, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (findTimer != nullptr)
+    {
+        lv_timer_pause(findTimer);
+    }
+    findVisible = false;
+}
+
+void UIOverlays::findTimerCallback(lv_timer_t* timer)
+{
+    UIOverlays* self = static_cast<UIOverlays*>(lv_timer_get_user_data(timer));
+    if (self == nullptr || self->findRoot == nullptr)
+    {
+        return;
+    }
+    self->findPhase ^= 1;
+    lv_obj_set_style_bg_color(self->findRoot, self->findPhase ? OV_ACCENT : OV_ACCENT_DARK, 0);
+}
+
+void UIOverlays::findDismissClicked(lv_event_t* event)
+{
+    UIOverlays* self = selfFrom(event);
+    if (self != nullptr)
+    {
+        self->hideFind();
     }
 }

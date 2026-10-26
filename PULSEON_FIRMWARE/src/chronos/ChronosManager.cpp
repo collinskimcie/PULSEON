@@ -475,6 +475,10 @@ void ChronosManager::healthRequestCallback(HealthRequest request, bool state)
 void ChronosManager::handleConnection(bool state)
 {
     connected = state;
+    if (state)
+    {
+        connectedAtMs = millis();
+    }
 
     if (appState != nullptr)
     {
@@ -497,6 +501,11 @@ void ChronosManager::handleNotification(const Notification& n)
 {
     Serial.printf("[CHRONOS] Notification: %s | %s | %s\n",
                   n.app.c_str(), n.title.c_str(), n.message.c_str());
+    Serial.print("[CHRONOS] title bytes:");
+    for (size_t i = 0; i < n.title.length() && i < 32; ++i) Serial.printf(" %02X", static_cast<uint8_t>(n.title[i]));
+    Serial.print("\n[CHRONOS] message bytes:");
+    for (size_t i = 0; i < n.message.length() && i < 48; ++i) Serial.printf(" %02X", static_cast<uint8_t>(n.message[i]));
+    Serial.println();
 
     if (appState == nullptr)
     {
@@ -565,7 +574,14 @@ void ChronosManager::handleConfiguration(Config config, uint32_t a, uint32_t b)
             break;
 
         case CF_FIND:
-            appState->requestFindWatch();
+            if (millis() - connectedAtMs > 4000)
+            {
+                appState->requestFindWatch();
+            }
+            else
+            {
+                Serial.println("[CHRONOS] Ignoring find request sent during connect sync");
+            }
             break;
 
         case CF_ALARM:

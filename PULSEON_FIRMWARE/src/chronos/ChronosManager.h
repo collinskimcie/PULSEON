@@ -102,6 +102,7 @@ private:
 
     bool connected = false;
     bool bluetoothOn = true;
+    uint32_t connectedAtMs = 0;
     AppStateManager* appState = nullptr;
 
     HealthRequest activeHealthRequest = HR_HEART_RATE_MEASURE;

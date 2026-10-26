@@ -15,7 +15,7 @@ static String displaySafe(const String& in)
         {
             out += ' ';
         }
-        else if (c >= 0x20 && c < 0x7F)
+        else if (c >= 0x20 && c != 0x7F)
         {
             out += static_cast<char>(c);
         }

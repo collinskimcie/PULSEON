@@ -30,6 +30,11 @@ private:
     void buildHistory();
     void buildCall();
     void buildAlarm();
+    void buildFind();
+    void showFind();
+    void hideFind();
+    static void findTimerCallback(lv_timer_t* timer);
+    static void findDismissClicked(lv_event_t* event);
 
     void showBanner(const PulseonNotification& n);
     void hideBanner();
@@ -57,6 +62,13 @@ private:
 
     lv_obj_t* alarmRoot = nullptr;
     lv_obj_t* alarmTime = nullptr;
+
+    lv_obj_t* findRoot = nullptr;
+    lv_timer_t* findTimer = nullptr;
+    bool findVisible = false;
+    uint8_t findPhase = 0;
+    uint32_t findStartMs = 0;
+    uint32_t lastFindEvent = 0;
 
     bool historyVisible = false;
     bool callVisible = false;
