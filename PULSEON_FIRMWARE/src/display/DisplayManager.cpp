@@ -215,6 +215,10 @@ void DisplayManager::flushCallback(
     lv_display_flush_ready(display);
 }
 
+#ifndef PULSEON_TOUCH_FLIP_X
+#define PULSEON_TOUCH_FLIP_X 1 // the touch X axis reads mirrored relative to the display
+#endif
+
 void DisplayManager::touchReadCallback(
     lv_indev_t* indev,
     lv_indev_data_t* data
@@ -240,9 +244,34 @@ void DisplayManager::touchReadCallback(
 
     const TouchPoint& point = points[0];
 
+    static lv_point_t lastPoint = {0, 0};
+    int32_t px = static_cast<int32_t>(point.x);
+    int32_t py = static_cast<int32_t>(point.y);
+    if (px < 0 || px > 239 || py < 0 || py > 319)
+    {
+        // The controller sometimes returns a garbage point; hold the last good one.
+        data->state = LV_INDEV_STATE_PRESSED;
+        data->point = lastPoint;
+        return;
+    }
+    if (PULSEON_TOUCH_FLIP_X)
+    {
+        px = 239 - px;
+    }
+    lastPoint.x = px;
+    lastPoint.y = py;
+
     data->state = LV_INDEV_STATE_PRESSED;
-    data->point.x = point.x;
-    data->point.y = point.y;
+    data->point.x = px;
+    data->point.y = py;
+
+    static uint32_t lastTouchLogMs = 0;
+    if (millis() - lastTouchLogMs > 150)
+    {
+        lastTouchLogMs = millis();
+        Serial.printf("[TOUCH] raw press x=%d y=%d\n",
+                      static_cast<int>(point.x), static_cast<int>(point.y));
+    }
 
     (void)indev;
 }

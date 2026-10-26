@@ -299,6 +299,21 @@ void UIApps::showPage(Page page)
 void UIApps::actionClicked(lv_event_t* event)
 {
     Action* action = static_cast<Action*>(lv_event_get_user_data(event));
+    {
+        lv_point_t p = {0, 0};
+        lv_indev_t* indev = lv_indev_active();
+        if (indev != nullptr)
+        {
+            lv_indev_get_point(indev, &p);
+        }
+        lv_area_t a = {0, 0, 0, 0};
+        lv_obj_get_coords(lv_event_get_target_obj(event), &a);
+        Serial.printf("[TOUCH] click act=%d at (%d,%d) button=(%d,%d)-(%d,%d)\n",
+                      action != nullptr ? static_cast<int>(action->id) : -1,
+                      static_cast<int>(p.x), static_cast<int>(p.y),
+                      static_cast<int>(a.x1), static_cast<int>(a.y1),
+                      static_cast<int>(a.x2), static_cast<int>(a.y2));
+    }
     if (action != nullptr && action->self != nullptr)
     {
         action->self->handle(action->id);
