@@ -7,6 +7,7 @@
 #include "UIOverlays.h"
 #include "UIText.h"
 #include "UITheme.h"
+#include "UIIcons.h"
 #include "../chronos/ChronosManager.h"
 
 namespace
@@ -179,13 +180,19 @@ void weekdayName(uint8_t offset, bool clockSynced, char* buf, size_t n)
     }
 }
 
-void decorateTile(lv_obj_t* button, lv_obj_t* label, lv_color_t accent)
+lv_obj_t* decorateTile(lv_obj_t* button, lv_obj_t* label, uint8_t iconId, lv_color_t accent)
 {
     lv_obj_set_style_radius(button, 18, 0);
     lv_obj_set_style_bg_opa(button, LV_OPA_70, LV_STATE_PRESSED);
     lv_obj_align(label, LV_ALIGN_BOTTOM_LEFT, 12, -8);
-    lv_obj_t* dot = makePanel(button, 12, 10, 14, 14, accent, 7);
-    lv_obj_clear_flag(dot, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t* img = lv_image_create(button);
+    lv_image_set_src(img, uiIcon(iconId));
+    lv_obj_set_style_image_recolor(img, accent, 0);
+    lv_obj_set_style_image_recolor_opa(img, LV_OPA_COVER, 0);
+    lv_obj_align(img, LV_ALIGN_TOP_LEFT, 10, 5);
+    lv_obj_clear_flag(img, LV_OBJ_FLAG_CLICKABLE);
+    return img;
 }
 
 void formatTime(uint8_t hour, uint8_t minute, bool is24, char* buf, size_t n)
@@ -293,7 +300,13 @@ void UIApps::buildApps()
         const int32_t x = 12 + (i % 2) * 112;
         const int32_t y = 4 + (i / 2) * 72;
         lv_obj_t* tileButton = addAction(tileArea, tiles[i].text, x, y, 104, 62, OV_CARD, OV_TEXT, tiles[i].act);
-        decorateTile(tileButton, lv_obj_get_child(tileButton, 0), OV_TILE[i]);
+        lv_obj_t* tileImg = decorateTile(tileButton, lv_obj_get_child(tileButton, 0),
+                                         uiIconForName(tiles[i].text), OV_TILE[i]);
+        if (tileIconCount < kMaxTileIcons)
+        {
+            tileIcons[tileIconCount] = tileImg;
+            tileIconColor[tileIconCount++] = i;
+        }
     }
     tileCount = 8;
 
@@ -689,7 +702,12 @@ void UIApps::addTile(const char* text, TileHandler handler, void* user)
     lv_label_set_text(label, text);
     lv_obj_set_style_text_font(label, font_h5, 0);
     lv_obj_set_style_text_color(label, OV_TEXT, 0);
-    decorateTile(button, label, OV_TILE[tileCount % 8]);
+    lv_obj_t* tileImg = decorateTile(button, label, uiIconForName(text), OV_TILE[tileCount % 8]);
+    if (tileIconCount < kMaxTileIcons)
+    {
+        tileIcons[tileIconCount] = tileImg;
+        tileIconColor[tileIconCount++] = tileCount % 8;
+    }
 
     ++tileCount;
 }
@@ -827,6 +845,10 @@ void UIApps::cycleTheme()
         }
     }
     loadPalette(to);
+    for (uint8_t i = 0; i < tileIconCount; ++i)
+    {
+        lv_obj_set_style_image_recolor(tileIcons[i], OV_TILE[tileIconColor[i]], 0);
+    }
     navShownIcon = false; // redraw the navigation icon in the new colors
     uiThemeSave(themeIndex);
     Serial.printf("[UI] Theme: %s\n", to.name);

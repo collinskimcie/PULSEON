@@ -128,6 +128,10 @@ private:
     ExtraTile extraTiles[kMaxExtraTiles] = {};
     uint8_t extraTileCount = 0;
     uint8_t tileCount = 0;
+    static constexpr uint8_t kMaxTileIcons = 16;
+    lv_obj_t* tileIcons[kMaxTileIcons] = {};
+    uint8_t tileIconColor[kMaxTileIcons] = {};
+    uint8_t tileIconCount = 0;
     lv_obj_t* tileArea = nullptr;
     uint32_t lastPollMs = 0;
 };
