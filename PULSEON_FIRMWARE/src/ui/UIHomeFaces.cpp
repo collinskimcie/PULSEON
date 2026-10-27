@@ -170,7 +170,8 @@ void makeStrs(const HomeData& d, Strs& s)
     snprintf(s.alarm, sizeof(s.alarm), "%s", d.nextAlarm);
     strcpy(s.link, d.connected ? "LINK OK" : "NO LINK");
     snprintf(s.notif, sizeof(s.notif), "%u", (unsigned)d.notifCount);
-    s.stepsPct = d.steps >= 10000 ? 100 : d.steps / 100;
+    const uint32_t goal = d.stepGoal >= 1000 ? d.stepGoal : 10000;
+    s.stepsPct = d.steps >= goal ? 100 : (int)((uint32_t)d.steps * 100 / goal);
     s.batPct = d.battery >= 0 ? d.battery : 0;
     s.secPct = (d.second > 59 ? 59 : d.second) * 100 / 59;
     s.o2Pct = d.oxygen > 100 ? 100 : d.oxygen;
@@ -293,7 +294,7 @@ void editCol(lv_obj_t* p, int x, const char* cap, lv_obj_t** value, lv_color_t i
 void buildEditorial(lv_obj_t* p)
 {
     EditUI& u = edit;
-    const lv_color_t ink = HEX(0x15130F), red = HEX(0xD9482B);
+    const lv_color_t ink = HEX(0x15130F), red = col.a1;
     lv_obj_set_style_bg_color(p, HEX(0xECE6DA), 0);
 
     u.date = tracked(mkText(p, LV_FONT_DEFAULT, ink, "", LV_ALIGN_TOP_LEFT, 20, 14), 2);
@@ -316,10 +317,10 @@ void buildEditorial(lv_obj_t* p)
 }
 
 // ------------------------------------------------------------ 2 Bento
-void bentoTile(lv_obj_t* p, int x, int y, int w, int h, uint32_t bg, uint32_t fg, const char* cap,
+void bentoTile(lv_obj_t* p, int x, int y, int w, int h, lv_color_t bg, uint32_t fg, const char* cap,
                const lv_font_t* font, lv_obj_t** capLabel, lv_obj_t** value)
 {
-    mkBox(p, x, y, w, h, HEX(bg), LV_OPA_COVER, 20);
+    mkBox(p, x, y, w, h, bg, LV_OPA_COVER, 20);
     lv_obj_t* c = tracked(mkText(p, LV_FONT_DEFAULT, HEX(fg), cap, LV_ALIGN_TOP_LEFT, x + 12, y + 8), 1);
     if (capLabel != nullptr)
     {
@@ -332,11 +333,11 @@ void buildBento(lv_obj_t* p)
 {
     BentoUI& u = bento;
     lv_obj_set_style_bg_color(p, HEX(0x0E0E12), 0);
-    bentoTile(p, 8, 8, 224, 96, 0xFF6B57, 0x1A0B08, "", HOME_FONT_XL, &u.date, &u.time);
-    bentoTile(p, 8, 112, 108, 70, 0xC8F169, 0x14210A, "HEART", HOME_FONT_L, nullptr, &u.hr);
-    bentoTile(p, 124, 112, 108, 70, 0xB9A4FF, 0x1A1235, "STEPS", HOME_FONT_L, nullptr, &u.steps);
-    bentoTile(p, 8, 190, 108, 56, 0x7CD6FF, 0x07202C, "PHONE", HOME_FONT_M, nullptr, &u.bat);
-    bentoTile(p, 124, 190, 108, 56, 0xFFD36B, 0x2A1D05, "SPO2", HOME_FONT_M, nullptr, &u.o2);
+    bentoTile(p, 8, 8, 224, 96, col.a1, 0x101014, "", HOME_FONT_XL, &u.date, &u.time);
+    bentoTile(p, 8, 112, 108, 70, col.a2, 0x101014, "HEART", HOME_FONT_L, nullptr, &u.hr);
+    bentoTile(p, 124, 112, 108, 70, col.a3, 0x101014, "STEPS", HOME_FONT_L, nullptr, &u.steps);
+    bentoTile(p, 8, 190, 108, 56, col.a4, 0x101014, "PHONE", HOME_FONT_M, nullptr, &u.bat);
+    bentoTile(p, 124, 190, 108, 56, lv_color_mix(col.a1, col.a3, 128), 0x101014, "SPO2", HOME_FONT_M, nullptr, &u.o2);
 
     mkBox(p, 8, 254, 224, 58, HEX(0x1E1E26), LV_OPA_COVER, 20);
     u.wx = mkText(p, LV_FONT_DEFAULT, HEX(0xFFFFFF), "", LV_ALIGN_TOP_LEFT, 20, 264);
@@ -345,14 +346,14 @@ void buildBento(lv_obj_t* p)
 }
 
 // ------------------------------------------------------------ 3 Aura
-void orb(lv_obj_t* p, int cx, int cy, int r, uint32_t color)
+void orb(lv_obj_t* p, int cx, int cy, int r, lv_color_t color)
 {
     static const int PCT[4] = {100, 78, 56, 34};
     static const lv_opa_t OPA[4] = {18, 30, 44, 60};
     for (int i = 0; i < 4; ++i)
     {
         const int rr = r * PCT[i] / 100;
-        mkBox(p, cx - rr, cy - rr, 2 * rr, 2 * rr, HEX(color), OPA[i], LV_RADIUS_CIRCLE);
+        mkBox(p, cx - rr, cy - rr, 2 * rr, 2 * rr, color, OPA[i], LV_RADIUS_CIRCLE);
     }
 }
 
@@ -361,9 +362,9 @@ void buildAura(lv_obj_t* p)
     AuraUI& u = aura;
     const lv_color_t white = HEX(0xFFFFFF);
     lv_obj_set_style_bg_color(p, HEX(0x0B0A12), 0);
-    orb(p, 60, 40, 105, 0xFF5FA2);
-    orb(p, 190, 180, 110, 0x6C5CFF);
-    orb(p, 70, 300, 110, 0x2FD8C8);
+    orb(p, 60, 40, 105, col.a1);
+    orb(p, 190, 180, 110, col.a2);
+    orb(p, 70, 300, 110, col.a4);
 
     u.time = mkText(p, HOME_FONT_XL, white, "--:--", LV_ALIGN_TOP_MID, 0, 74);
     u.date = tracked(mkText(p, LV_FONT_DEFAULT, white, "", LV_ALIGN_TOP_MID, 0, 138), 3);
@@ -390,9 +391,9 @@ lv_obj_t* subDial(lv_obj_t* p, int x, int y, int d, const char* cap, const lv_fo
 void buildRegulator(lv_obj_t* p)
 {
     RegUI& u = reg;
-    const lv_color_t gold = HEX(0xE9D29A);
-    lv_obj_set_style_bg_color(p, HEX(0x1E6B54), 0);
-    lv_obj_set_style_bg_grad_color(p, HEX(0x0A2B22), 0);
+    const lv_color_t gold = col.a3;
+    lv_obj_set_style_bg_color(p, lv_color_mix(col.a1, col.bg, 90), 0);
+    lv_obj_set_style_bg_grad_color(p, lv_color_mix(col.a1, col.bg, 30), 0);
     lv_obj_set_style_bg_grad_dir(p, LV_GRAD_DIR_VER, 0);
 
     u.date = tracked(mkText(p, LV_FONT_DEFAULT, gold, "", LV_ALIGN_TOP_MID, 0, 14), 4);
@@ -408,7 +409,7 @@ void buildRegulator(lv_obj_t* p)
 void buildSwiss(lv_obj_t* p)
 {
     SwissUI& u = swiss;
-    const lv_color_t ink = HEX(0x0A0A0A), red = HEX(0xE5251B), track = HEX(0xD6D6D0);
+    const lv_color_t ink = HEX(0x0A0A0A), red = col.a1, track = HEX(0xD6D6D0);
     lv_obj_set_style_bg_color(p, HEX(0xF4F4F0), 0);
 
     segBuild(u.h0, p, 14, 12, 100, 170, 26, ink);
@@ -432,14 +433,14 @@ void buildGlass(lv_obj_t* p)
 {
     GlassUI& u = glass;
     const lv_color_t white = HEX(0xFFFFFF);
-    lv_obj_set_style_bg_color(p, HEX(0x1B1740), 0);
-    lv_obj_set_style_bg_grad_color(p, HEX(0x0B3B3A), 0);
+    lv_obj_set_style_bg_color(p, lv_color_mix(col.a1, col.bg, 60), 0);
+    lv_obj_set_style_bg_grad_color(p, lv_color_mix(col.a2, col.bg, 60), 0);
     lv_obj_set_style_bg_grad_dir(p, LV_GRAD_DIR_VER, 0);
 
     u.wx = tracked(mkText(p, LV_FONT_DEFAULT, white, "", LV_ALIGN_TOP_MID, 0, 12), 2);
-    u.r1 = mkRing(p, 120, 150, 210, 10, HEX(0xFF6FA5), white, 28);
-    u.r2 = mkRing(p, 120, 150, 164, 10, HEX(0x6FE3FF), white, 28);
-    u.r3 = mkRing(p, 120, 150, 118, 10, HEX(0xB6FF6F), white, 28);
+    u.r1 = mkRing(p, 120, 150, 210, 10, col.a1, white, 28);
+    u.r2 = mkRing(p, 120, 150, 164, 10, col.a2, white, 28);
+    u.r3 = mkRing(p, 120, 150, 118, 10, col.a4, white, 28);
     u.time = mkText(p, HOME_FONT_L, white, "--:--", LV_ALIGN_TOP_MID, 0, 132);
     u.date = tracked(mkText(p, LV_FONT_DEFAULT, white, "", LV_ALIGN_TOP_MID, 0, 168), 2);
 
@@ -495,7 +496,15 @@ void uiHomeExtBuild(lv_obj_t* panel, uint8_t kind, const HomeColors& colors)
 
 void uiHomeExtRecolor(const HomeColors& colors)
 {
-    col = colors;  // these six faces use their own fixed palettes
+    col = colors;
+    for (uint8_t i = 0; i < FACES; ++i)
+    {
+        rebuild(i);
+    }
+    if (haveCur)
+    {
+        uiHomeExtUpdate(cur);
+    }
 }
 
 namespace

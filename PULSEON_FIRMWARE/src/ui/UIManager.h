@@ -43,6 +43,9 @@ private:
     void updateScreens();
     void applyHomeFace();
     void rebuildClassicFaces();
+    void restoreClock();
+    void showToast(const char* text, lv_color_t color);
+    static void stepGoalTile(void* user);
     lv_obj_t* createScreen(Screen screen);
 
     struct FaceSelectionContext
@@ -66,6 +69,7 @@ private:
     uint8_t selectedHomeFace = 0;
     uint8_t homeThemeIndex = 0;
     uint32_t lastThemePollMs = 0;
+    uint16_t stepGoal = 10000;
 
     lv_obj_t* faceClock[6] = {};
     lv_obj_t* faceDate[6] = {};

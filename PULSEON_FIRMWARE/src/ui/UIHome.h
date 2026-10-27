@@ -56,6 +56,7 @@ struct HomeData
     uint8_t oxygen = 0;      // SpO2 percent, 0 = no reading
     bool connected = false;  // phone link
     bool charging = false;
+    uint16_t stepGoal = 10000;
 };
 
 // Fills `panel` with one face. Call once per face after the panel exists.

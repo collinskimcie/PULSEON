@@ -3,9 +3,11 @@
 #include <cmath>
 #include <stdint.h>
 #include <time.h>
+#include <stdlib.h>
 #include <Preferences.h>
 
 #include "app_config.h"
+#include "UIUtils.h"
 #include "PULSEON_WATCH_UI.h"
 
 namespace
@@ -180,6 +182,19 @@ void UIManager::begin(AppStateManager* state)
     {
         selectedHomeFace = 0;
     }
+    {
+        Preferences goalPrefs;
+        if (goalPrefs.begin("pulseon", true))
+        {
+            stepGoal = goalPrefs.getUShort("stepGoal", 10000);
+            goalPrefs.end();
+        }
+        if (stepGoal < 1000 || stepGoal > 20000)
+        {
+            stepGoal = 10000;
+        }
+    }
+    restoreClock();
 
     Serial.println("[UI] Initializing six-screen health interface...");
     PULSEON_WATCH_UI_init(nullptr);
@@ -188,6 +203,10 @@ void UIManager::begin(AppStateManager* state)
     overlays.begin(appState, chronos);
     apps.begin(appState, chronos, &overlays);
     sysui.begin(appState, chronos, &apps);
+    apps.addTile("Step goal", stepGoalTile, this);
+    apps.addTile("Stopwatch", uiStopwatchOpen, nullptr);
+    apps.addTile("Timer", uiTimerOpen, nullptr);
+    apps.addTile("Flashlight", uiFlashlightOpen, nullptr);
     showScreen(SCREEN_WATCH_HOME);
     updateScreens();
     lastUpdateMs = millis();
@@ -294,6 +313,93 @@ void UIManager::connectionToastTimerCallback(lv_timer_t* timer)
         lv_obj_add_flag(ui->connectionToast, LV_OBJ_FLAG_HIDDEN);
     }
     lv_timer_pause(timer);
+}
+
+static void saveTimezone(bool clockSynced)
+{
+    static String savedTz;
+    const char* tz = getenv("TZ");
+    if (!clockSynced || tz == nullptr || tz[0] == 0 || savedTz.equals(tz))
+    {
+        return;
+    }
+    savedTz = tz;
+    Preferences p;
+    if (p.begin("pulseon", false))
+    {
+        if (!p.getString("tz", "").equals(tz))
+        {
+            p.putString("tz", tz);
+        }
+        p.end();
+    }
+}
+
+void UIManager::restoreClock()
+{
+    if (appState == nullptr)
+    {
+        return;
+    }
+    Preferences p;
+    if (p.begin("pulseon", true))
+    {
+        const String tz = p.getString("tz", "");
+        p.end();
+        if (tz.length() > 0 && getenv("TZ") == nullptr)
+        {
+            setenv("TZ", tz.c_str(), 1);
+            tzset();
+        }
+    }
+    if (time(nullptr) > 1704067200)  // 1 Jan 2024: the clock survived the reset
+    {
+        appState->setClockSynced(true);
+        Serial.println("[UI] System clock still valid after reset");
+    }
+}
+
+void UIManager::showToast(const char* text, lv_color_t color)
+{
+    if (connectionToast == nullptr || connectionToastLabel == nullptr || connectionToastTimer == nullptr)
+    {
+        return;
+    }
+    lv_label_set_text(connectionToastLabel, text);
+    lv_obj_set_style_border_color(connectionToast, color, 0);
+    lv_obj_set_style_text_color(connectionToastLabel, color, 0);
+    lv_obj_clear_flag(connectionToast, LV_OBJ_FLAG_HIDDEN);
+    lv_timer_reset(connectionToastTimer);
+    lv_timer_resume(connectionToastTimer);
+}
+
+void UIManager::stepGoalTile(void* user)
+{
+    UIManager* ui = static_cast<UIManager*>(user);
+    if (ui == nullptr)
+    {
+        return;
+    }
+    static const uint16_t GOALS[5] = {5000, 8000, 10000, 12000, 15000};
+    uint8_t next = 0;
+    for (uint8_t i = 0; i < 5; ++i)
+    {
+        if (GOALS[i] == ui->stepGoal)
+        {
+            next = (i + 1) % 5;
+            break;
+        }
+    }
+    ui->stepGoal = GOALS[next];
+    Preferences p;
+    if (p.begin("pulseon", false))
+    {
+        p.putUShort("stepGoal", ui->stepGoal);
+        p.end();
+    }
+    char b[32];
+    snprintf(b, sizeof(b), "Step goal %u", (unsigned)ui->stepGoal);
+    ui->showToast(b, UI_COLOR_GOOD);
 }
 
 static HomeColors homeColorsFor(uint8_t themeIndex)
@@ -754,6 +860,7 @@ void UIManager::update()
     overlays.poll();
     apps.poll();
     sysui.poll();
+    uiUtilsPoll();
 
     const uint32_t now = millis();
     if (now - lastUpdateMs < 1000)
@@ -897,6 +1004,7 @@ void UIManager::updateScreens()
         }
     }
 
+    saveTimezone(state.clockSynced);
     {
         HomeData home;
         int nowMinutes = -1;
@@ -961,6 +1069,7 @@ void UIManager::updateScreens()
         home.oxygen = bloodOxygen;
         home.connected = state.phoneConnected;
         home.charging = state.phoneCharging;
+        home.stepGoal = stepGoal;
 
         const uint32_t pollNow = millis();
         if (pollNow - lastThemePollMs >= 1000)
