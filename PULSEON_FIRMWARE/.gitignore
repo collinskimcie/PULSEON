@@ -10,3 +10,6 @@
 # local backups
 src/**/*.before-*
 src/*.before-*
+include/wifi_secrets.h
+.ota_ip
+include/wifi_secrets.h

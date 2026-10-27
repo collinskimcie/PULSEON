@@ -207,6 +207,8 @@ void UIManager::begin(AppStateManager* state)
     apps.addTile("Stopwatch", uiStopwatchOpen, nullptr);
     apps.addTile("Timer", uiTimerOpen, nullptr);
     apps.addTile("Flashlight", uiFlashlightOpen, nullptr);
+    uiUpdateBegin(&apps);
+    apps.addTile("Update", uiUpdateOpen, nullptr);
     showScreen(SCREEN_WATCH_HOME);
     updateScreens();
     lastUpdateMs = millis();
@@ -860,6 +862,7 @@ void UIManager::update()
     overlays.poll();
     apps.poll();
     sysui.poll();
+    uiUpdatePoll();
     uiUtilsPoll();
 
     const uint32_t now = millis();

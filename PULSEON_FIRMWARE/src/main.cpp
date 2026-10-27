@@ -4,6 +4,7 @@
 
 #include <Arduino.h>
 #include <esp_task_wdt.h>
+#include <esp_ota_ops.h>
 #include <lvgl.h>
 
 #include "app_config.h"
@@ -23,6 +24,13 @@ DisplayManager displayManager;
 UIManager uiManager;
 
 RTC_DATA_ATTR static uint8_t displayFailures = 0;
+
+// A freshly updated firmware stays "pending" until loop() has run for a while.
+// If it crashes or resets before then, the bootloader returns to the old one.
+extern "C" bool verifyRollbackLater()
+{
+    return true;
+}
 
 // Shows a built-in notification with emoji at boot. Set to false when done testing.
 constexpr bool kEmojiSelfTest = false;
@@ -145,6 +153,14 @@ void loop()
     }
     displayManager.loop();
     lv_timer_handler();
+
+    static bool otaValidated = false;
+    if (!otaValidated && millis() > 30000)
+    {
+        otaValidated = true;
+        const esp_err_t ok = esp_ota_mark_app_valid_cancel_rollback();
+        Serial.printf("[OTA] firmware marked valid: %s\n", esp_err_to_name(ok));
+    }
 
     delay(5);
 }

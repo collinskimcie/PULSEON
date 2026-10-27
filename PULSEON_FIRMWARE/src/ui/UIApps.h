@@ -123,12 +123,12 @@ private:
         TileHandler handler;
         void* user;
     };
-    static constexpr uint8_t kMaxExtraTiles = 8;
+    static constexpr uint8_t kMaxExtraTiles = 16;
     static void extraTileClicked(lv_event_t* event);
     ExtraTile extraTiles[kMaxExtraTiles] = {};
     uint8_t extraTileCount = 0;
     uint8_t tileCount = 0;
-    static constexpr uint8_t kMaxTileIcons = 16;
+    static constexpr uint8_t kMaxTileIcons = 28;
     lv_obj_t* tileIcons[kMaxTileIcons] = {};
     uint8_t tileIconColor[kMaxTileIcons] = {};
     uint8_t tileIconCount = 0;

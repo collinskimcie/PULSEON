@@ -9,6 +9,7 @@
 #include "UISystem.h"
 #include "UIHome.h"
 #include "UITheme.h"
+#include "UIUpdate.h"
 
 class ChronosManager;
 
