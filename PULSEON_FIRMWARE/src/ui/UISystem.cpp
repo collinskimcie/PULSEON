@@ -5,6 +5,7 @@
 
 #include "PULSEON_WATCH_UI.h"
 #include "UIApps.h"
+#include "UITheme.h"
 #include "../chronos/ChronosManager.h"
 
 namespace
@@ -129,6 +130,7 @@ void UISystem::begin(AppStateManager* state, ChronosManager* chronosManager, UIA
     buildBluetooth();
     buildContacts();
     buildQr();
+    buildQuick();
 
     if (apps != nullptr)
     {
@@ -241,6 +243,46 @@ void UISystem::buildSettings()
     refreshSettingsLabels();
 }
 
+void UISystem::buildQuick()
+{
+    lv_obj_t* root = makeRoot(PAGE_QUICK, "QUICK");
+
+    quickBrightLabel = makeLabel(root, "", 16, 40, 208, 22, font_h5, OV_TEXT);
+
+    quickSlider = lv_slider_create(root);
+    lv_obj_set_pos(quickSlider, 24, 70);
+    lv_obj_set_size(quickSlider, 192, 14);
+    lv_slider_set_range(quickSlider, 5, 100);
+    lv_slider_set_value(quickSlider, brightness, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(quickSlider, OV_CARD_ALT, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(quickSlider, OV_ACCENT, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(quickSlider, OV_TEXT, LV_PART_KNOB);
+    lv_obj_set_style_pad_all(quickSlider, 6, LV_PART_KNOB);
+    lv_obj_add_event_cb(quickSlider, quickSliderChanged, LV_EVENT_VALUE_CHANGED, this);
+    lv_obj_add_event_cb(quickSlider, sliderReleased, LV_EVENT_RELEASED, this);
+
+    lv_obj_t* quiet = addAction(root, "", 12, 100, 106, 52, OV_CARD, OV_TEXT, ACT_Q_QUIET);
+    lv_obj_t* bt = addAction(root, "", 122, 100, 106, 52, OV_CARD, OV_TEXT, ACT_Q_BT);
+    lv_obj_t* find = addAction(root, "", 12, 160, 106, 52, OV_CARD, OV_TEXT, ACT_Q_FIND);
+    lv_obj_t* theme = addAction(root, "", 122, 160, 106, 52, OV_CARD, OV_TEXT, ACT_Q_THEME);
+    quickQuietLabel = lv_obj_get_child(quiet, 0);
+    quickBtLabel = lv_obj_get_child(bt, 0);
+    quickFindLabel = lv_obj_get_child(find, 0);
+    quickThemeLabel = lv_obj_get_child(theme, 0);
+
+    lv_obj_t* tileLabels[4] = {quickQuietLabel, quickBtLabel, quickFindLabel, quickThemeLabel};
+    for (uint8_t i = 0; i < 4; ++i)
+    {
+        lv_obj_set_style_text_font(tileLabels[i], font_body, 0);
+        lv_obj_set_style_text_align(tileLabels[i], LV_TEXT_ALIGN_CENTER, 0);
+    }
+
+    addAction(root, "All settings", 12, 220, 216, 40, OV_CARD, OV_TEXT, ACT_Q_ALL);
+    addAction(root, "Close", 12, 268, 216, 44, OV_CARD_ALT, OV_TEXT, ACT_Q_CLOSE);
+
+    refreshQuick();
+}
+
 void UISystem::buildBluetooth()
 {
     lv_obj_t* root = makeRoot(PAGE_BLUETOOTH, "BLUETOOTH");
@@ -287,6 +329,51 @@ void UISystem::openBluetoothTile(void* user) { static_cast<UISystem*>(user)->sho
 void UISystem::openContactsTile(void* user)  { static_cast<UISystem*>(user)->showPage(PAGE_CONTACTS); }
 void UISystem::openQrTile(void* user)        { static_cast<UISystem*>(user)->showPage(PAGE_QR); }
 
+void UISystem::showQuick()
+{
+    showPage(PAGE_QUICK);
+}
+
+void UISystem::quickSliderChanged(lv_event_t* event)
+{
+    UISystem* self = static_cast<UISystem*>(lv_event_get_user_data(event));
+    if (self == nullptr || self->quickSlider == nullptr)
+    {
+        return;
+    }
+
+    self->brightness = static_cast<uint8_t>(lv_slider_get_value(self->quickSlider));
+    self->dimmed = false;
+    self->applyBrightness(self->brightness);
+    lv_label_set_text_fmt(self->quickBrightLabel, "Brightness  %u%%",
+                          static_cast<unsigned>(self->brightness));
+    self->refreshSettingsLabels();
+}
+
+void UISystem::refreshQuick()
+{
+    if (quickSlider == nullptr)
+    {
+        return;
+    }
+
+    lv_label_set_text_fmt(quickBrightLabel, "Brightness  %u%%", static_cast<unsigned>(brightness));
+    lv_slider_set_value(quickSlider, brightness, LV_ANIM_OFF);
+
+    const bool quiet = appState != nullptr && appState->getState().quietEnabled;
+    const bool btOn = chronos != nullptr && chronos->isBluetoothOn();
+
+    lv_label_set_text_fmt(quickQuietLabel, "Quiet\n%s", quiet ? "On" : "Off");
+    lv_label_set_text_fmt(quickBtLabel, "Bluetooth\n%s", btOn ? "On" : "Off");
+    lv_label_set_text(quickFindLabel, quickFinding ? "Stop\nfinding" : "Find\nphone");
+    lv_label_set_text_fmt(quickThemeLabel, "Theme\n%s", UI_PALETTES[uiThemeLoad()].name);
+
+    lv_obj_center(quickQuietLabel);
+    lv_obj_center(quickBtLabel);
+    lv_obj_center(quickFindLabel);
+    lv_obj_center(quickThemeLabel);
+}
+
 void UISystem::showSettings()
 {
     showPage(PAGE_SETTINGS);
@@ -320,6 +407,7 @@ void UISystem::showPage(Page page)
     if (page == PAGE_BLUETOOTH) refreshBluetooth();
     if (page == PAGE_CONTACTS) rebuildContacts();
     if (page == PAGE_QR) rebuildQr();
+    if (page == PAGE_QUICK) refreshQuick();
 
     lv_obj_clear_flag(roots[page], LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(roots[page]);
@@ -590,6 +678,51 @@ void UISystem::handle(uint8_t id)
             }
             break;
 
+        case ACT_Q_QUIET:
+        {
+            if (appState != nullptr)
+            {
+                const PulseonAppState& st = appState->getState();
+                appState->setQuietHours(!st.quietEnabled, st.quietStartHour, st.quietStartMinute,
+                                        st.quietEndHour, st.quietEndMinute);
+            }
+            refreshQuick();
+            break;
+        }
+
+        case ACT_Q_BT:
+            if (chronos != nullptr)
+            {
+                chronos->setBluetoothEnabled(!chronos->isBluetoothOn());
+            }
+            refreshQuick();
+            break;
+
+        case ACT_Q_FIND:
+            if (chronos != nullptr)
+            {
+                quickFinding = !quickFinding;
+                chronos->findPhone(quickFinding);
+            }
+            refreshQuick();
+            break;
+
+        case ACT_Q_THEME:
+            if (apps != nullptr)
+            {
+                apps->cycleTheme();
+            }
+            refreshQuick();
+            break;
+
+        case ACT_Q_ALL:
+            showPage(PAGE_SETTINGS);
+            break;
+
+        case ACT_Q_CLOSE:
+            showPage(PAGE_NONE);
+            break;
+
         default:
             break;
     }
@@ -664,5 +797,10 @@ void UISystem::poll()
     {
         lastRefreshMs = now;
         refreshBluetooth();
+    }
+    else if (current == PAGE_QUICK && now - lastRefreshMs >= 500)
+    {
+        lastRefreshMs = now;
+        refreshQuick();
     }
 }

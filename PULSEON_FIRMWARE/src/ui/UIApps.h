@@ -18,6 +18,7 @@ public:
     void show();
     void showMusic();
     bool isVisible() const;
+    void cycleTheme();
 
     typedef void (*TileHandler)(void* user);
     void addTile(const char* text, TileHandler handler, void* user);
@@ -80,7 +81,6 @@ private:
     void buildCamera();
     void buildNav();
     void refreshNav();
-    void cycleTheme();
 
     void showPage(Page page);
     void refreshWeather();

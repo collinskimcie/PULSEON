@@ -841,7 +841,7 @@ void UIManager::screenGestureCallback(lv_event_t* event)
     }
     else if (direction == LV_DIR_BOTTOM)
     {
-        ui->sysui.showSettings();
+        ui->sysui.showQuick();
     }
 }
 

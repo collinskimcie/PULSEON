@@ -17,6 +17,7 @@ public:
     void begin(AppStateManager* appState, ChronosManager* chronos, UIApps* apps);
     void poll();
     void showSettings();
+    void showQuick();
     void setBrightnessHandler(BrightnessHandler handler);
 
 private:
@@ -27,6 +28,7 @@ private:
         PAGE_BLUETOOTH,
         PAGE_CONTACTS,
         PAGE_QR,
+        PAGE_QUICK,
         PAGE_COUNT
     };
 
@@ -38,6 +40,12 @@ private:
         ACT_BT_TOGGLE,
         ACT_QR_PREV,
         ACT_QR_NEXT,
+        ACT_Q_QUIET,
+        ACT_Q_BT,
+        ACT_Q_FIND,
+        ACT_Q_THEME,
+        ACT_Q_ALL,
+        ACT_Q_CLOSE,
         ACT_COUNT
     };
 
@@ -50,6 +58,7 @@ private:
     static void actionClicked(lv_event_t* event);
     static void sliderChanged(lv_event_t* event);
     static void sliderReleased(lv_event_t* event);
+    static void quickSliderChanged(lv_event_t* event);
     static void openSettingsTile(void* user);
     static void openBluetoothTile(void* user);
     static void openContactsTile(void* user);
@@ -65,12 +74,14 @@ private:
     void buildBluetooth();
     void buildContacts();
     void buildQr();
+    void buildQuick();
 
     void showPage(Page page);
     void loadPrefs();
     void savePrefs();
     void applyBrightness(uint8_t percent);
     void refreshSettingsLabels();
+    void refreshQuick();
     void refreshBluetooth();
     void rebuildContacts();
     void rebuildQr();
@@ -93,6 +104,15 @@ private:
     lv_obj_t* brightnessLabel = nullptr;
     lv_obj_t* timeoutLabel = nullptr;
     lv_obj_t* hourLabel = nullptr;
+
+    // Quick settings
+    lv_obj_t* quickSlider = nullptr;
+    lv_obj_t* quickBrightLabel = nullptr;
+    lv_obj_t* quickQuietLabel = nullptr;
+    lv_obj_t* quickBtLabel = nullptr;
+    lv_obj_t* quickFindLabel = nullptr;
+    lv_obj_t* quickThemeLabel = nullptr;
+    bool quickFinding = false;
 
     // Bluetooth
     lv_obj_t* btStatus = nullptr;
