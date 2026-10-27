@@ -246,6 +246,11 @@ void uiUpdateBegin(UIApps* apps)
     lv_obj_add_flag(root, LV_OBJ_FLAG_HIDDEN);
 }
 
+bool uiUpdateRadioActive()
+{
+    return radioOn;
+}
+
 void uiUpdateOpen(void* user)
 {
     (void)user;

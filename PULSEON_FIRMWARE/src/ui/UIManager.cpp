@@ -215,6 +215,8 @@ void UIManager::begin(AppStateManager* state)
     Serial.println("[UI] Six-screen health interface initialized");
 }
 
+static void createStatusIcons();
+
 void UIManager::createScreens()
 {
     for (uint8_t index = 0; index < SCREEN_COUNT; ++index)
@@ -243,7 +245,70 @@ void UIManager::createScreens()
 
     createFacePicker();
     applyHomeFace();
+    createStatusIcons();
     createConnectionToast();
+}
+
+#include <WiFi.h>
+
+static lv_obj_t* btIcon = nullptr;
+static lv_obj_t* wifiIcon = nullptr;
+
+static void setBtStatus(bool connected)
+{
+    if (btIcon == nullptr)
+    {
+        return;
+    }
+    if (connected)
+    {
+        lv_obj_clear_flag(btIcon, LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+        lv_obj_add_flag(btIcon, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static void wifiStatusTimer(lv_timer_t* timer)
+{
+    (void)timer;
+    if (wifiIcon == nullptr)
+    {
+        return;
+    }
+    const bool on = (WiFi.status() == WL_CONNECTED);
+    const bool hidden = lv_obj_has_flag(wifiIcon, LV_OBJ_FLAG_HIDDEN);
+    if (on && hidden)
+    {
+        lv_obj_clear_flag(wifiIcon, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_move_foreground(wifiIcon);
+    }
+    else if (!on && !hidden)
+    {
+        lv_obj_add_flag(wifiIcon, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static lv_obj_t* makeStatusIcon(const char* symbol, int32_t xOffset)
+{
+    lv_obj_t* icon = lv_label_create(lv_layer_top());
+    if (icon == nullptr)
+    {
+        return nullptr;
+    }
+    lv_label_set_text(icon, symbol);
+    lv_obj_set_style_text_color(icon, UI_COLOR_GOOD, 0);
+    lv_obj_align(icon, LV_ALIGN_TOP_RIGHT, xOffset, 4);
+    lv_obj_add_flag(icon, LV_OBJ_FLAG_HIDDEN);
+    return icon;
+}
+
+static void createStatusIcons()
+{
+    btIcon = makeStatusIcon(LV_SYMBOL_BLUETOOTH, -8);
+    wifiIcon = makeStatusIcon(LV_SYMBOL_WIFI, -28);
+    lv_timer_create(wifiStatusTimer, 1000, nullptr);
 }
 
 void UIManager::createConnectionToast()
@@ -288,6 +353,7 @@ void UIManager::createConnectionToast()
 
 void UIManager::showConnectionToast(bool connected)
 {
+    setBtStatus(connected);
     if (connectionToast == nullptr ||
         connectionToastLabel == nullptr ||
         connectionToastTimer == nullptr)
@@ -852,8 +918,112 @@ UIManager::Screen UIManager::getCurrentScreen() const
     return currentScreen;
 }
 
+#include <ArduinoOTA.h>
+#include "WifiSetup.h"
+#if __has_include("wifi_secrets.h")
+#include "wifi_secrets.h"
+#endif
+#ifndef OTA_PASSWORD
+#define OTA_PASSWORD "pulseon"
+#endif
+
+bool uiUpdateRadioActive();
+
+// Set to false to go back to Wi-Fi only while the Update page is open.
+static constexpr bool KEEP_WIFI_ON = true;
+
+static uint32_t keepAtMs = 0;
+static uint32_t keepSinceMs = 0;
+static bool keepStarted = false;
+static bool keepOta = false;
+
+static void wifiKeepLoop()
+{
+    if (!KEEP_WIFI_ON)
+    {
+        return;
+    }
+
+    // The Update page owns the radio while it is open.
+    if (uiUpdateRadioActive())
+    {
+        if (keepOta)
+        {
+            ArduinoOTA.end();
+            keepOta = false;
+        }
+        keepStarted = false;
+        keepAtMs = 0;
+        return;
+    }
+
+    const uint32_t now = millis();
+    const bool online = (WiFi.status() == WL_CONNECTED);
+
+    if (keepOta && online)
+    {
+        ArduinoOTA.handle();
+    }
+
+    if (!keepStarted)
+    {
+        if (now < 8000)
+        {
+            return; // let boot and Chronos settle first
+        }
+        if (keepAtMs != 0 && now - keepAtMs < 60000)
+        {
+            return;
+        }
+        WiFi.mode(WIFI_STA);
+        WiFi.setHostname("pulseon");
+        wifiConnectBegin();
+        keepStarted = true;
+        keepSinceMs = now;
+        keepAtMs = now;
+        Serial.println("[WIFI] keep-alive: joining");
+        return;
+    }
+
+    if (online)
+    {
+        if (!keepOta)
+        {
+            ArduinoOTA.setHostname("pulseon");
+            ArduinoOTA.setPassword(OTA_PASSWORD);
+            ArduinoOTA.begin();
+            keepOta = true;
+            Serial.printf("[WIFI] keep-alive: online, IP %s\n", WiFi.localIP().toString().c_str());
+        }
+        keepSinceMs = now;
+        return;
+    }
+
+    if (keepOta)
+    {
+        ArduinoOTA.end();
+        keepOta = false;
+    }
+    if (now - keepSinceMs > 20000)
+    {
+        if (wifiConnectAdvance())
+        {
+            keepSinceMs = now;
+        }
+        else
+        {
+            WiFi.disconnect(true);
+            WiFi.mode(WIFI_OFF);
+            keepStarted = false;
+            keepAtMs = now;
+            Serial.println("[WIFI] keep-alive: no network, retrying in 60 s");
+        }
+    }
+}
+
 void UIManager::update()
 {
+    wifiKeepLoop();
     if (appState == nullptr)
     {
         return;
