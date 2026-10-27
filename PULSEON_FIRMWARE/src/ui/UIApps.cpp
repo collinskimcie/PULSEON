@@ -335,6 +335,7 @@ void UIApps::buildWeather()
 {
     lv_obj_t* root = makeRoot(PAGE_WEATHER, "WEATHER");
 
+    makePanel(root, 8, 38, 224, 104, OV_CARD, 18);
     weatherCity = makeLabel(root, "", 16, 40, 208, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER);
     weatherTemp = makeLabel(root, "--", 16, 60, 208, 56, font_h2, OV_ACCENT, LV_TEXT_ALIGN_CENTER);
     weatherRange = makeLabel(root, "", 16, 118, 208, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER);
@@ -531,6 +532,20 @@ void UIApps::refreshWeather()
     snprintf(buf, sizeof(buf), "High %d   Low %d", st.weatherHigh, st.weatherLow);
     lv_label_set_text(weatherRange, buf);
 
+    Serial.printf("[WEATHER] icon=%d temp=%d\n", st.weatherIcon, st.weatherTemperature);
+
+    int minT = 1000;
+    int maxT = -1000;
+    for (uint8_t i = 0; i < st.weatherDayCount; ++i)
+    {
+        const PulseonForecastDay& day = st.weatherDays[i];
+        Serial.printf("[WEATHER] day %u icon=%d temp=%d low=%d high=%d\n",
+                      static_cast<unsigned>(i), day.icon, day.temp, day.low, day.high);
+        if (day.low < minT) minT = day.low;
+        if (day.high > maxT) maxT = day.high;
+    }
+    const int span = (maxT > minT) ? (maxT - minT) : 1;
+
     for (uint8_t i = 0; i < st.weatherDayCount; ++i)
     {
         const PulseonForecastDay& d = st.weatherDays[i];
@@ -544,11 +559,21 @@ void UIApps::refreshWeather()
             weekdayName(i, st.clockSynced, name, sizeof(name));
         }
         lv_obj_t* row = makePanel(weatherList, 0, 0, 220, 30, OV_CARD, 12);
-        makeLabel(row, name, 12, 5, 90, 20, font_body, OV_TEXT);
-        snprintf(buf, sizeof(buf), "%d", d.temp);
-        makeLabel(row, buf, 100, 5, 40, 20, font_h5, OV_ACCENT, LV_TEXT_ALIGN_RIGHT);
-        snprintf(buf, sizeof(buf), "H%d  L%d", d.high, d.low);
-        makeLabel(row, buf, 146, 5, 68, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_RIGHT);
+        makeLabel(row, name, 10, 5, 62, 20, font_body, OV_TEXT);
+
+        snprintf(buf, sizeof(buf), "%d", d.low);
+        makeLabel(row, buf, 72, 5, 28, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_RIGHT);
+
+        makePanel(row, 106, 12, 64, 6, OV_CARD_ALT, 3);
+        int fillX = (d.low - minT) * 64 / span;
+        int fillW = (d.high - d.low) * 64 / span;
+        if (fillW < 6) fillW = 6;
+        if (fillX + fillW > 64) fillX = 64 - fillW;
+        if (fillX < 0) fillX = 0;
+        makePanel(row, 106 + fillX, 12, fillW, 6, OV_ACCENT, 3);
+
+        snprintf(buf, sizeof(buf), "%d", d.high);
+        makeLabel(row, buf, 174, 5, 38, 20, font_h5, OV_TEXT, LV_TEXT_ALIGN_RIGHT);
     }
 }
 
