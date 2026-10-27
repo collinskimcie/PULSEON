@@ -1,5 +1,6 @@
 #include "UIOverlays.h"
 #include "UIText.h"
+#include "UITheme.h"
 
 #include <stdio.h>
 #include <time.h>
@@ -99,6 +100,67 @@ lv_obj_t* makeButton(
     return button;
 }
 
+char initialOf(const String& name)
+{
+    for (size_t i = 0; i < name.length(); ++i)
+    {
+        const uint8_t ch = static_cast<uint8_t>(name[i]);
+        if (ch >= 'a' && ch <= 'z')
+        {
+            return static_cast<char>(ch - 32);
+        }
+        if ((ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9'))
+        {
+            return static_cast<char>(ch);
+        }
+    }
+    return '?';
+}
+
+lv_color_t badgeColor(const String& name)
+{
+    uint32_t hash = 5381;
+    for (size_t i = 0; i < name.length(); ++i)
+    {
+        hash = hash * 33 + static_cast<uint8_t>(name[i]);
+    }
+    const UIPalette& p = UI_PALETTES[uiThemeLoad() % UI_PALETTE_COUNT];
+    return lv_color_hex(p.tile[hash % 8]);
+}
+
+void updateBadge(lv_obj_t* badge, const String& name)
+{
+    if (badge == nullptr)
+    {
+        return;
+    }
+    lv_obj_set_style_bg_color(badge, badgeColor(name), 0);
+    lv_obj_t* label = lv_obj_get_child(badge, 0);
+    if (label != nullptr)
+    {
+        char text[2] = {initialOf(name), '\0'};
+        lv_label_set_text(label, text);
+        lv_obj_center(label);
+    }
+}
+
+lv_obj_t* makeBadge(
+    lv_obj_t* parent,
+    int32_t x,
+    int32_t y,
+    int32_t size,
+    const String& name,
+    const lv_font_t* font
+)
+{
+    lv_obj_t* badge = makePanel(parent, x, y, size, size, OV_CARD_ALT, LV_RADIUS_CIRCLE);
+    lv_obj_t* label = lv_label_create(badge);
+    lv_obj_set_style_text_font(label, font, 0);
+    lv_obj_set_style_text_color(label, OV_BG, 0);
+    updateBadge(badge, name);
+    return badge;
+}
+
 UIOverlays* selfFrom(lv_event_t* event)
 {
     return static_cast<UIOverlays*>(lv_event_get_user_data(event));
@@ -138,8 +200,9 @@ void UIOverlays::buildBanner()
     lv_obj_add_flag(banner, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(banner, bannerClicked, LV_EVENT_CLICKED, this);
 
-    bannerApp = makeLabel(banner, "", 12, 6, 200, 16, font_body, OV_MUTED);
-    bannerTitle = makeLabel(banner, "", 12, 22, 200, 22, font_h5, OV_TEXT);
+    bannerBadge = makeBadge(banner, 10, 8, 34, String(""), font_h5);
+    bannerApp = makeLabel(banner, "", 52, 6, 162, 16, font_body, OV_MUTED);
+    bannerTitle = makeLabel(banner, "", 52, 22, 162, 22, font_h5, OV_TEXT);
     bannerText = makeLabel(banner, "", 12, 46, 200, 32, font_body, OV_MUTED,
                            LV_TEXT_ALIGN_LEFT, LV_LABEL_LONG_WRAP);
 
@@ -178,12 +241,25 @@ void UIOverlays::buildCall()
     callRoot = makePanel(lv_layer_top(), 0, 0, 240, 320, OV_BG, 0);
     lv_obj_add_flag(callRoot, LV_OBJ_FLAG_CLICKABLE);
 
-    makeLabel(callRoot, "INCOMING CALL", 16, 70, 208, 24, font_h5, OV_GOOD,
+    makeLabel(callRoot, "INCOMING CALL", 16, 14, 208, 24, font_h5, OV_GOOD,
               LV_TEXT_ALIGN_CENTER);
-    callName = makeLabel(callRoot, "", 12, 120, 216, 80, font_h3, OV_TEXT,
+
+    callRing = makePanel(callRoot, 64, 50, 112, 112, OV_BG, LV_RADIUS_CIRCLE);
+    lv_obj_set_style_bg_opa(callRing, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_color(callRing, OV_GOOD, 0);
+    lv_obj_set_style_border_width(callRing, 3, 0);
+
+    callBadge = makeBadge(callRoot, 76, 62, 88, String(""), font_h2);
+
+    callName = makeLabel(callRoot, "", 12, 170, 216, 60, font_h3, OV_TEXT,
                          LV_TEXT_ALIGN_CENTER, LV_LABEL_LONG_WRAP);
-    makeButton(callRoot, "Hide", 60, 250, 120, 44, OV_CARD_ALT, OV_TEXT,
+    makeLabel(callRoot, "Answer on your phone", 16, 234, 208, 20, font_body, OV_MUTED,
+              LV_TEXT_ALIGN_CENTER);
+    makeButton(callRoot, "Hide", 60, 268, 120, 44, OV_CARD_ALT, OV_TEXT,
                callHideClicked, this);
+
+    callTimer = lv_timer_create(callTimerCallback, 500, this);
+    lv_timer_pause(callTimer);
 
     lv_obj_add_flag(callRoot, LV_OBJ_FLAG_HIDDEN);
 }
@@ -307,6 +383,8 @@ void UIOverlays::showBanner(const PulseonNotification& n)
     lv_label_set_text(bannerApp, uiText(header).c_str());
     lv_label_set_text(bannerTitle, uiText(n.title).c_str());
     lv_label_set_text(bannerText, uiText(n.message).c_str());
+    updateBadge(bannerBadge, n.app);
+    lv_obj_set_style_border_color(banner, badgeColor(n.app), 0);
 
     lv_obj_clear_flag(banner, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(banner);
@@ -431,8 +509,9 @@ void UIOverlays::rebuildHistory()
             header += n->time;
         }
 
-        makeLabel(card, uiText(header).c_str(), 12, 6, 168, 16, font_body, OV_MUTED);
-        makeLabel(card, uiText(n->title).c_str(), 12, 22, 168, 22, uiEmojiFont(font_h5), OV_TEXT);
+        makeBadge(card, 10, 8, 30, n->app, font_h5);
+        makeLabel(card, uiText(header).c_str(), 48, 6, 134, 16, font_body, OV_MUTED);
+        makeLabel(card, uiText(n->title).c_str(), 48, 22, 134, 22, uiEmojiFont(font_h5), OV_TEXT);
         makeLabel(card, uiText(n->message).c_str(), 12, 44, 200, 32, uiEmojiFont(font_body), OV_MUTED,
                   LV_TEXT_ALIGN_LEFT, LV_LABEL_LONG_WRAP);
     }
@@ -473,6 +552,13 @@ void UIOverlays::showCall(const String& caller)
     lv_obj_set_style_text_font(callName, uiEmojiFont(font_h3), 0);
     const String shownCaller = uiText(caller);
     lv_label_set_text(callName, shownCaller.length() > 0 ? shownCaller.c_str() : "Unknown");
+    updateBadge(callBadge, caller);
+    callPhase = 0;
+    if (callTimer != nullptr)
+    {
+        lv_timer_reset(callTimer);
+        lv_timer_resume(callTimer);
+    }
 
     hideBanner();
     lv_obj_clear_flag(callRoot, LV_OBJ_FLAG_HIDDEN);
@@ -486,6 +572,21 @@ void UIOverlays::hideCall()
     lv_obj_add_flag(callRoot, LV_OBJ_FLAG_HIDDEN);
     callVisible = false;
     lastCallName = "";
+    if (callTimer != nullptr)
+    {
+        lv_timer_pause(callTimer);
+    }
+}
+
+void UIOverlays::callTimerCallback(lv_timer_t* timer)
+{
+    UIOverlays* self = static_cast<UIOverlays*>(lv_timer_get_user_data(timer));
+    if (self == nullptr || self->callRing == nullptr)
+    {
+        return;
+    }
+    self->callPhase ^= 1;
+    lv_obj_set_style_border_opa(self->callRing, self->callPhase ? LV_OPA_COVER : LV_OPA_20, 0);
 }
 
 void UIOverlays::callHideClicked(lv_event_t* event)

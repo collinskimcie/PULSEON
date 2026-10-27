@@ -25,6 +25,7 @@ private:
     static void alarmSnoozeClicked(lv_event_t* event);
     static void alarmStopClicked(lv_event_t* event);
     static void bannerTimerCallback(lv_timer_t* timer);
+    static void callTimerCallback(lv_timer_t* timer);
 
     void buildBanner();
     bool quietNow(const PulseonAppState& st) const;
@@ -54,6 +55,7 @@ private:
     lv_obj_t* bannerApp = nullptr;
     lv_obj_t* bannerTitle = nullptr;
     lv_obj_t* bannerText = nullptr;
+    lv_obj_t* bannerBadge = nullptr;
     lv_timer_t* bannerTimer = nullptr;
 
     lv_obj_t* historyRoot = nullptr;
@@ -61,6 +63,10 @@ private:
 
     lv_obj_t* callRoot = nullptr;
     lv_obj_t* callName = nullptr;
+    lv_obj_t* callBadge = nullptr;
+    lv_obj_t* callRing = nullptr;
+    lv_timer_t* callTimer = nullptr;
+    uint8_t callPhase = 0;
 
     lv_obj_t* alarmRoot = nullptr;
     lv_obj_t* alarmTime = nullptr;
