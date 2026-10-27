@@ -33,6 +33,8 @@
 #define HOME_FONT_M LV_FONT_DEFAULT
 #endif
 
+#define HEX(v) lv_color_hex(v)
+
 namespace
 {
 constexpr uint8_t FACES = 6;
@@ -41,41 +43,43 @@ HomeData cur;
 bool haveCur = false;
 lv_obj_t* panels[FACES] = {};
 
-struct BrutUI
+struct Seg
 {
-    lv_obj_t *date, *link, *hour, *minute, *hr, *steps, *stepsFill, *bat, *batFill, *wx, *alarm;
+    lv_obj_t* s[7];
+    int8_t shown;
 };
-struct DotUI
+struct EditUI
 {
-    lv_obj_t* dots[4][7][5];
-    lv_obj_t* colon[2];
-    int8_t shown[4];
-    lv_obj_t *date, *wx, *hr, *steps, *o2, *bat;
-    lv_obj_t* stepSq[20];
-    lv_obj_t* batSq[10];
+    Seg h0, h1, m0, m1;
+    lv_obj_t *date, *link, *wd, *dd, *mon, *hr, *steps, *bat;
 };
-struct TopoUI
+struct BentoUI
 {
-    lv_obj_t *arc, *time, *date, *hr, *wx, *link, *bat, *o2, *alarm;
+    lv_obj_t *date, *time, *hr, *steps, *bat, *o2, *wx, *alarm, *alerts;
+};
+struct AuraUI
+{
+    lv_obj_t *time, *date, *wx, *hr, *steps, *bat;
+};
+struct RegUI
+{
+    lv_obj_t *date, *hour, *minute, *sec, *secArc, *strip;
+};
+struct SwissUI
+{
+    Seg h0, h1, m0, m1;
+    lv_obj_t *stepsLbl, *stepsFill, *batLbl, *batFill, *foot;
 };
 struct GlassUI
 {
-    lv_obj_t *time, *date, *hr, *steps, *bat, *o2, *strip;
+    lv_obj_t *wx, *time, *date, *r1, *r2, *r3, *hr, *o2, *alerts;
 };
-struct CircuitUI
-{
-    lv_obj_t *time, *date, *link, *hr, *steps, *bat, *o2, *wx, *alarm;
-};
-struct PrismUI
-{
-    lv_obj_t *t0, *t1, *t2, *date, *hr, *o2, *steps, *strip;
-};
-BrutUI brut = {};
-DotUI dotUi = {};
-TopoUI topoUi = {};
-GlassUI glassUi = {};
-CircuitUI circuitUi = {};
-PrismUI prismUi = {};
+EditUI edit = {};
+BentoUI bento = {};
+AuraUI aura = {};
+RegUI reg = {};
+SwissUI swiss = {};
+GlassUI glass = {};
 
 const char* const DAYS[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 const char* const MONTHS[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -83,28 +87,51 @@ const char* const MONTHS[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 
 struct Strs
 {
-    char tm[8], hh[4], mm[4], date[24], temp[12], wx[40], hr[8], steps[8];
-    char o2[8], bat[8], alarm[8], link[10], notif[8];
-    int stepsPct, batPct;
+    char tm[8], hh[4], mm[4], ss[4], date[24], dateUp[24], wd[4], dd[4], mon[4];
+    char temp[12], wx[40], hr[8], steps[8], o2[8], bat[8], alarm[8], link[10], notif[8];
+    int stepsPct, batPct, secPct, o2Pct;
 };
+
+void upper(char* t)
+{
+    for (; *t; ++t)
+    {
+        if (*t >= 'a' && *t <= 'z')
+        {
+            *t = (char)(*t - 32);
+        }
+    }
+}
 
 void makeStrs(const HomeData& d, Strs& s)
 {
     if (d.timeValid)
     {
+        const char* mo = MONTHS[(d.month >= 1 && d.month <= 12) ? d.month - 1 : 0];
         snprintf(s.tm, sizeof(s.tm), "%02d:%02d", (int)d.hour, (int)d.minute);
         snprintf(s.hh, sizeof(s.hh), "%02d", (int)d.hour);
         snprintf(s.mm, sizeof(s.mm), "%02d", (int)d.minute);
-        snprintf(s.date, sizeof(s.date), "%s %d %s", DAYS[d.weekday % 7], (int)d.day,
-                 MONTHS[(d.month >= 1 && d.month <= 12) ? d.month - 1 : 0]);
+        snprintf(s.ss, sizeof(s.ss), "%02d", (int)d.second);
+        snprintf(s.date, sizeof(s.date), "%s %d %s", DAYS[d.weekday % 7], (int)d.day, mo);
+        snprintf(s.wd, sizeof(s.wd), "%s", DAYS[d.weekday % 7]);
+        snprintf(s.dd, sizeof(s.dd), "%d", (int)d.day);
+        snprintf(s.mon, sizeof(s.mon), "%s", mo);
     }
     else
     {
         strcpy(s.tm, "--:--");
         strcpy(s.hh, "--");
         strcpy(s.mm, "--");
+        strcpy(s.ss, "--");
         strcpy(s.date, "-- -- --");
+        strcpy(s.wd, "---");
+        strcpy(s.dd, "--");
+        strcpy(s.mon, "---");
     }
+    snprintf(s.dateUp, sizeof(s.dateUp), "%s", s.date);
+    upper(s.dateUp);
+    upper(s.wd);
+    upper(s.mon);
     if (d.hasTemp)
     {
         snprintf(s.temp, sizeof(s.temp), "%d\xC2\xB0", (int)d.tempC);
@@ -114,6 +141,7 @@ void makeStrs(const HomeData& d, Strs& s)
         strcpy(s.temp, "--");
     }
     snprintf(s.wx, sizeof(s.wx), "%s %s", s.temp, d.weather);
+    upper(s.wx);
     if (d.heartRate > 0)
     {
         snprintf(s.hr, sizeof(s.hr), "%u", (unsigned)d.heartRate);
@@ -144,6 +172,8 @@ void makeStrs(const HomeData& d, Strs& s)
     snprintf(s.notif, sizeof(s.notif), "%u", (unsigned)d.notifCount);
     s.stepsPct = d.steps >= 10000 ? 100 : d.steps / 100;
     s.batPct = d.battery >= 0 ? d.battery : 0;
+    s.secPct = (d.second > 59 ? 59 : d.second) * 100 / 59;
+    s.o2Pct = d.oxygen > 100 ? 100 : d.oxygen;
 }
 
 void setText(lv_obj_t* o, const char* t)
@@ -171,6 +201,12 @@ lv_obj_t* mkText(lv_obj_t* parent, const lv_font_t* font, lv_color_t color, cons
     return l;
 }
 
+lv_obj_t* tracked(lv_obj_t* label, int space)
+{
+    lv_obj_set_style_text_letter_space(label, space, 0);
+    return label;
+}
+
 lv_obj_t* mkBox(lv_obj_t* parent, int x, int y, int w, int h, lv_color_t color, lv_opa_t opa, int radius)
 {
     lv_obj_t* o = lv_obj_create(parent);
@@ -192,259 +228,226 @@ void outline(lv_obj_t* o, int w, lv_color_t c, lv_opa_t opa)
     lv_obj_set_style_border_opa(o, opa, 0);
 }
 
-lv_obj_t* mkArc(lv_obj_t* parent, int diameter, int width, lv_color_t color, int maxValue)
+lv_obj_t* mkRing(lv_obj_t* p, int cx, int cy, int d, int w, lv_color_t c, lv_color_t track, lv_opa_t trackOpa)
 {
-    lv_obj_t* a = lv_arc_create(parent);
+    lv_obj_t* a = lv_arc_create(p);
     lv_obj_remove_style(a, nullptr, LV_PART_KNOB);
     lv_obj_clear_flag(a, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_size(a, diameter, diameter);
-    lv_obj_center(a);
+    lv_obj_set_size(a, d, d);
+    lv_obj_set_pos(a, cx - d / 2, cy - d / 2);
     lv_arc_set_rotation(a, 270);
     lv_arc_set_bg_angles(a, 0, 360);
-    lv_arc_set_range(a, 0, maxValue);
+    lv_arc_set_range(a, 0, 100);
     lv_arc_set_value(a, 0);
-    lv_obj_set_style_arc_width(a, width, LV_PART_MAIN);
-    lv_obj_set_style_arc_width(a, width, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_color(a, col.card, LV_PART_MAIN);
-    lv_obj_set_style_arc_color(a, color, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(a, w, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(a, w, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(a, track, LV_PART_MAIN);
+    lv_obj_set_style_arc_opa(a, trackOpa, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(a, c, LV_PART_INDICATOR);
     lv_obj_set_style_arc_rounded(a, true, LV_PART_MAIN);
     lv_obj_set_style_arc_rounded(a, true, LV_PART_INDICATOR);
     return a;
 }
 
-// ------------------------------------------------------------ Brutalist
-void brutRow(lv_obj_t* p, int y, const char* tag, lv_color_t accent, lv_obj_t** fill, lv_obj_t** value)
+// Bar digits: 7 rounded bars per digit, scalable to any size.
+const uint8_t SEG_MASK[11] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x40};
+
+void segBuild(Seg& g, lv_obj_t* p, int x, int y, int w, int h, int t, lv_color_t c)
 {
-    lv_obj_t* row = mkBox(p, 6, y, 228, 40, col.card, LV_OPA_COVER, 0);
-    outline(row, 3, accent, LV_OPA_COVER);
-    if (fill != nullptr)
+    const int hh = (h - t) / 2;
+    const int r = t / 2;
+    g.s[0] = mkBox(p, x + t, y, w - 2 * t, t, c, LV_OPA_COVER, r);
+    g.s[1] = mkBox(p, x + w - t, y + t / 2, t, hh, c, LV_OPA_COVER, r);
+    g.s[2] = mkBox(p, x + w - t, y + hh + t / 2, t, hh, c, LV_OPA_COVER, r);
+    g.s[3] = mkBox(p, x + t, y + h - t, w - 2 * t, t, c, LV_OPA_COVER, r);
+    g.s[4] = mkBox(p, x, y + hh + t / 2, t, hh, c, LV_OPA_COVER, r);
+    g.s[5] = mkBox(p, x, y + t / 2, t, hh, c, LV_OPA_COVER, r);
+    g.s[6] = mkBox(p, x + t, y + hh, w - 2 * t, t, c, LV_OPA_COVER, r);
+    g.shown = -2;
+}
+
+void segSet(Seg& g, int digit)
+{
+    if (g.shown == digit)
     {
-        *fill = mkBox(row, 52, 0, 1, 34, accent, LV_OPA_50, 0);
+        return;
     }
-    mkBox(row, 0, 0, 52, 34, accent, LV_OPA_COVER, 0);
-    mkText(row, LV_FONT_DEFAULT, col.bg, tag, LV_ALIGN_LEFT_MID, 6, 0);
-    *value = mkText(row, HOME_FONT_L, col.text, "--", LV_ALIGN_LEFT_MID, 62, 0);
-}
-
-void buildBrutal(lv_obj_t* p)
-{
-    BrutUI& u = brut;
-    mkBox(p, 0, 0, 240, 34, col.a1, LV_OPA_COVER, 0);
-    u.date = mkText(p, LV_FONT_DEFAULT, col.bg, "", LV_ALIGN_TOP_LEFT, 10, 10);
-    u.link = mkText(p, LV_FONT_DEFAULT, col.bg, "", LV_ALIGN_TOP_RIGHT, -10, 10);
-
-    lv_obj_t* hb = mkBox(p, 6, 44, 112, 96, col.a1, LV_OPA_COVER, 0);
-    lv_obj_t* mb = mkBox(p, 122, 44, 112, 96, col.card, LV_OPA_COVER, 0);
-    outline(mb, 3, col.a1, LV_OPA_COVER);
-    u.hour = mkText(hb, HOME_FONT_XL, col.bg, "--", LV_ALIGN_CENTER, 0, 0);
-    u.minute = mkText(mb, HOME_FONT_XL, col.text, "--", LV_ALIGN_CENTER, 0, 0);
-
-    brutRow(p, 150, "HR", col.a3, nullptr, &u.hr);
-    brutRow(p, 196, "STEPS", col.a2, &u.stepsFill, &u.steps);
-    brutRow(p, 242, "PHONE", col.a4, &u.batFill, &u.bat);
-
-    u.wx = mkText(p, LV_FONT_DEFAULT, col.dim, "", LV_ALIGN_BOTTOM_LEFT, 8, -10);
-    u.alarm = mkText(p, LV_FONT_DEFAULT, col.a1, "", LV_ALIGN_BOTTOM_RIGHT, -8, -10);
-}
-
-// ------------------------------------------------------------ Dot matrix
-const uint8_t DOT_FONT[11][7] = {
-    {0x0E, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0E},  // 0
-    {0x04, 0x0C, 0x04, 0x04, 0x04, 0x04, 0x0E},  // 1
-    {0x0E, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1F},  // 2
-    {0x1F, 0x02, 0x04, 0x02, 0x01, 0x11, 0x0E},  // 3
-    {0x02, 0x06, 0x0A, 0x12, 0x1F, 0x02, 0x02},  // 4
-    {0x1F, 0x10, 0x1E, 0x01, 0x01, 0x11, 0x0E},  // 5
-    {0x06, 0x08, 0x10, 0x1E, 0x11, 0x11, 0x0E},  // 6
-    {0x1F, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08},  // 7
-    {0x0E, 0x11, 0x11, 0x0E, 0x11, 0x11, 0x0E},  // 8
-    {0x0E, 0x11, 0x11, 0x0F, 0x01, 0x02, 0x0C},  // 9
-    {0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00}   // dash (clock not synced)
-};
-const int DOT_X[4] = {8, 62, 134, 188};
-
-void dotRow(lv_obj_t* p, int y, const char* tag, lv_obj_t** value, lv_color_t dim)
-{
-    mkText(p, LV_FONT_DEFAULT, dim, tag, LV_ALIGN_TOP_LEFT, 12, y + 8);
-    *value = mkText(p, HOME_FONT_L, col.a3, "--", LV_ALIGN_TOP_RIGHT, -12, y);
-}
-
-void buildDot(lv_obj_t* p)
-{
-    DotUI& u = dotUi;
-    memset(&u, 0, sizeof(u));
-    const lv_color_t dim = lv_color_mix(col.a3, col.bg, 150);
-
-    for (int d = 0; d < 4; ++d)
+    g.shown = (int8_t)digit;
+    const uint8_t m = SEG_MASK[(digit >= 0 && digit <= 9) ? digit : 10];
+    for (int i = 0; i < 7; ++i)
     {
-        u.shown[d] = -2;
-        for (int r = 0; r < 7; ++r)
+        if (g.s[i] != nullptr)
         {
-            for (int c = 0; c < 5; ++c)
-            {
-                u.dots[d][r][c] = mkBox(p, DOT_X[d] + c * 9, 44 + r * 9, 7, 7, col.a3,
-                                        LV_OPA_10, LV_RADIUS_CIRCLE);
-            }
+            lv_obj_set_style_bg_opa(g.s[i], ((m >> i) & 1) ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
         }
     }
-    u.colon[0] = mkBox(p, 116, 44 + 2 * 9, 7, 7, col.a3, LV_OPA_COVER, LV_RADIUS_CIRCLE);
-    u.colon[1] = mkBox(p, 116, 44 + 4 * 9, 7, 7, col.a3, LV_OPA_COVER, LV_RADIUS_CIRCLE);
+}
 
-    u.date = mkText(p, LV_FONT_DEFAULT, dim, "", LV_ALIGN_TOP_LEFT, 12, 122);
-    u.wx = mkText(p, LV_FONT_DEFAULT, dim, "", LV_ALIGN_TOP_RIGHT, -12, 122);
+// ------------------------------------------------------------ 1 Editorial
+void editCol(lv_obj_t* p, int x, const char* cap, lv_obj_t** value, lv_color_t ink)
+{
+    tracked(mkText(p, LV_FONT_DEFAULT, ink, cap, LV_ALIGN_TOP_LEFT, x, 268), 1);
+    *value = mkText(p, HOME_FONT_M, ink, "--", LV_ALIGN_TOP_LEFT, x, 286);
+}
 
-    dotRow(p, 148, "HEART", &u.hr, dim);
-    dotRow(p, 180, "STEPS", &u.steps, dim);
-    for (int i = 0; i < 20; ++i)
+void buildEditorial(lv_obj_t* p)
+{
+    EditUI& u = edit;
+    const lv_color_t ink = HEX(0x15130F), red = HEX(0xD9482B);
+    lv_obj_set_style_bg_color(p, HEX(0xECE6DA), 0);
+
+    u.date = tracked(mkText(p, LV_FONT_DEFAULT, ink, "", LV_ALIGN_TOP_LEFT, 20, 14), 2);
+    u.link = tracked(mkText(p, LV_FONT_DEFAULT, ink, "", LV_ALIGN_TOP_RIGHT, -20, 14), 2);
+    mkBox(p, 20, 36, 200, 1, ink, LV_OPA_COVER, 0);
+
+    segBuild(u.h0, p, 20, 50, 56, 96, 12, ink);
+    segBuild(u.h1, p, 88, 50, 56, 96, 12, ink);
+    segBuild(u.m0, p, 20, 156, 56, 96, 12, red);
+    segBuild(u.m1, p, 88, 156, 56, 96, 12, red);
+
+    u.wd = tracked(mkText(p, HOME_FONT_M, ink, "", LV_ALIGN_TOP_LEFT, 164, 56), 2);
+    u.dd = mkText(p, HOME_FONT_XL, ink, "", LV_ALIGN_TOP_LEFT, 164, 80);
+    u.mon = tracked(mkText(p, HOME_FONT_M, red, "", LV_ALIGN_TOP_LEFT, 164, 140), 2);
+
+    mkBox(p, 20, 262, 200, 1, ink, LV_OPA_COVER, 0);
+    editCol(p, 20, "HEART", &u.hr, ink);
+    editCol(p, 90, "STEPS", &u.steps, ink);
+    editCol(p, 160, "PHONE", &u.bat, ink);
+}
+
+// ------------------------------------------------------------ 2 Bento
+void bentoTile(lv_obj_t* p, int x, int y, int w, int h, uint32_t bg, uint32_t fg, const char* cap,
+               const lv_font_t* font, lv_obj_t** capLabel, lv_obj_t** value)
+{
+    mkBox(p, x, y, w, h, HEX(bg), LV_OPA_COVER, 20);
+    lv_obj_t* c = tracked(mkText(p, LV_FONT_DEFAULT, HEX(fg), cap, LV_ALIGN_TOP_LEFT, x + 12, y + 8), 1);
+    if (capLabel != nullptr)
     {
-        u.stepSq[i] = mkBox(p, 12 + i * 11, 214, 8, 6, col.a3, LV_OPA_20, 1);
+        *capLabel = c;
     }
-    dotRow(p, 234, "SPO2", &u.o2, dim);
-    dotRow(p, 266, "PHONE", &u.bat, dim);
-    for (int i = 0; i < 10; ++i)
+    *value = mkText(p, font, HEX(fg), "--", LV_ALIGN_TOP_LEFT, x + 12, y + (h > 80 ? 30 : 26));
+}
+
+void buildBento(lv_obj_t* p)
+{
+    BentoUI& u = bento;
+    lv_obj_set_style_bg_color(p, HEX(0x0E0E12), 0);
+    bentoTile(p, 8, 8, 224, 96, 0xFF6B57, 0x1A0B08, "", HOME_FONT_XL, &u.date, &u.time);
+    bentoTile(p, 8, 112, 108, 70, 0xC8F169, 0x14210A, "HEART", HOME_FONT_L, nullptr, &u.hr);
+    bentoTile(p, 124, 112, 108, 70, 0xB9A4FF, 0x1A1235, "STEPS", HOME_FONT_L, nullptr, &u.steps);
+    bentoTile(p, 8, 190, 108, 56, 0x7CD6FF, 0x07202C, "PHONE", HOME_FONT_M, nullptr, &u.bat);
+    bentoTile(p, 124, 190, 108, 56, 0xFFD36B, 0x2A1D05, "SPO2", HOME_FONT_M, nullptr, &u.o2);
+
+    mkBox(p, 8, 254, 224, 58, HEX(0x1E1E26), LV_OPA_COVER, 20);
+    u.wx = mkText(p, LV_FONT_DEFAULT, HEX(0xFFFFFF), "", LV_ALIGN_TOP_LEFT, 20, 264);
+    u.alarm = mkText(p, LV_FONT_DEFAULT, HEX(0xB8B8C4), "", LV_ALIGN_TOP_LEFT, 20, 284);
+    u.alerts = mkText(p, HOME_FONT_L, HEX(0xFFFFFF), "", LV_ALIGN_TOP_RIGHT, -20, 272);
+}
+
+// ------------------------------------------------------------ 3 Aura
+void orb(lv_obj_t* p, int cx, int cy, int r, uint32_t color)
+{
+    static const int PCT[4] = {100, 78, 56, 34};
+    static const lv_opa_t OPA[4] = {18, 30, 44, 60};
+    for (int i = 0; i < 4; ++i)
     {
-        u.batSq[i] = mkBox(p, 12 + i * 22, 300, 19, 6, col.a3, LV_OPA_20, 1);
+        const int rr = r * PCT[i] / 100;
+        mkBox(p, cx - rr, cy - rr, 2 * rr, 2 * rr, HEX(color), OPA[i], LV_RADIUS_CIRCLE);
     }
 }
 
-// ------------------------------------------------------------ Topo
-void buildTopo(lv_obj_t* p)
+void buildAura(lv_obj_t* p)
 {
-    TopoUI& u = topoUi;
-    static const int CW[5] = {232, 206, 178, 150, 124};
-    static const int CH[5] = {232, 218, 184, 160, 128};
-    static const int OX[5] = {0, 5, -6, 4, -3};
-    static const int OY[5] = {0, -4, 5, -3, 4};
-    for (int i = 0; i < 5; ++i)
-    {
-        lv_obj_t* ring = mkBox(p, 0, 0, CW[i], CH[i], col.bg, LV_OPA_TRANSP, LV_RADIUS_CIRCLE);
-        outline(ring, 1, col.dim, LV_OPA_60);
-        lv_obj_align(ring, LV_ALIGN_CENTER, OX[i], OY[i]);
-    }
-    u.arc = mkArc(p, 226, 7, col.a1, 100);
-    u.time = mkText(p, HOME_FONT_XL, col.text, "--:--", LV_ALIGN_CENTER, 0, -20);
-    u.date = mkText(p, LV_FONT_DEFAULT, col.dim, "", LV_ALIGN_CENTER, 0, 14);
-    u.hr = mkText(p, HOME_FONT_M, col.a2, "-- bpm", LV_ALIGN_CENTER, 0, 40);
-    u.wx = mkText(p, LV_FONT_DEFAULT, col.a1, "", LV_ALIGN_TOP_LEFT, 14, 14);
-    u.link = mkText(p, LV_FONT_DEFAULT, col.a3, "", LV_ALIGN_TOP_RIGHT, -14, 14);
-    u.bat = mkText(p, LV_FONT_DEFAULT, col.a4, "", LV_ALIGN_BOTTOM_LEFT, 14, -14);
-    u.o2 = mkText(p, LV_FONT_DEFAULT, col.a2, "", LV_ALIGN_BOTTOM_MID, 0, -14);
-    u.alarm = mkText(p, LV_FONT_DEFAULT, col.a3, "", LV_ALIGN_BOTTOM_RIGHT, -14, -14);
+    AuraUI& u = aura;
+    const lv_color_t white = HEX(0xFFFFFF);
+    lv_obj_set_style_bg_color(p, HEX(0x0B0A12), 0);
+    orb(p, 60, 40, 105, 0xFF5FA2);
+    orb(p, 190, 180, 110, 0x6C5CFF);
+    orb(p, 70, 300, 110, 0x2FD8C8);
+
+    u.time = mkText(p, HOME_FONT_XL, white, "--:--", LV_ALIGN_TOP_MID, 0, 74);
+    u.date = tracked(mkText(p, LV_FONT_DEFAULT, white, "", LV_ALIGN_TOP_MID, 0, 138), 3);
+    u.wx = tracked(mkText(p, LV_FONT_DEFAULT, white, "", LV_ALIGN_TOP_MID, 0, 214), 2);
+
+    lv_obj_t* pill = mkBox(p, 16, 252, 208, 52, white, 36, 26);
+    outline(pill, 1, white, 90);
+    u.hr = mkText(p, HOME_FONT_M, white, "--", LV_ALIGN_TOP_LEFT, 32, 267);
+    u.steps = mkText(p, HOME_FONT_M, white, "--", LV_ALIGN_TOP_MID, 0, 267);
+    u.bat = mkText(p, HOME_FONT_M, white, "--", LV_ALIGN_TOP_RIGHT, -32, 267);
 }
 
-// ------------------------------------------------------------ Glassmorph
-void glassCard(lv_obj_t* p, int x, int y, int w, int h, int radius)
+// ------------------------------------------------------------ 4 Regulator
+lv_obj_t* subDial(lv_obj_t* p, int x, int y, int d, const char* cap, const lv_font_t* font,
+                  lv_obj_t** value, lv_color_t gold)
 {
-    lv_obj_t* c = mkBox(p, x, y, w, h, col.text, LV_OPA_20, radius);
-    outline(c, 1, col.text, LV_OPA_40);
+    lv_obj_t* ring = mkBox(p, x, y, d, d, gold, LV_OPA_TRANSP, LV_RADIUS_CIRCLE);
+    outline(ring, 2, gold, LV_OPA_COVER);
+    *value = mkText(ring, font, gold, "--", LV_ALIGN_CENTER, 0, -6);
+    tracked(mkText(ring, LV_FONT_DEFAULT, gold, cap, LV_ALIGN_BOTTOM_MID, 0, -(d / 8)), 2);
+    return ring;
 }
 
-void glassMetric(lv_obj_t* p, int x, int y, const char* cap, lv_color_t accent, lv_obj_t** value)
+void buildRegulator(lv_obj_t* p)
 {
-    glassCard(p, x, y, 104, 64, 20);
-    mkText(p, LV_FONT_DEFAULT, accent, cap, LV_ALIGN_TOP_LEFT, x + 14, y + 10);
-    *value = mkText(p, HOME_FONT_L, col.text, "--", LV_ALIGN_TOP_LEFT, x + 14, y + 28);
-}
-
-void buildGlass(lv_obj_t* p)
-{
-    GlassUI& u = glassUi;
-    mkBox(p, -40, 10, 170, 170, col.a1, 90, LV_RADIUS_CIRCLE);
-    mkBox(p, 110, 120, 150, 150, col.a2, 90, LV_RADIUS_CIRCLE);
-    mkBox(p, -10, 190, 140, 140, col.a3, 80, LV_RADIUS_CIRCLE);
-    mkBox(p, 150, -30, 120, 120, col.a4, 70, LV_RADIUS_CIRCLE);
-
-    glassCard(p, 12, 22, 216, 104, 24);
-    u.time = mkText(p, HOME_FONT_XL, col.text, "--:--", LV_ALIGN_TOP_MID, 0, 36);
-    u.date = mkText(p, LV_FONT_DEFAULT, col.text, "", LV_ALIGN_TOP_MID, 0, 98);
-
-    glassMetric(p, 12, 138, "HEART RATE", col.a4, &u.hr);
-    glassMetric(p, 124, 138, "STEPS", col.a3, &u.steps);
-    glassMetric(p, 12, 210, "PHONE", col.a2, &u.bat);
-    glassMetric(p, 124, 210, "SPO2", col.a1, &u.o2);
-
-    glassCard(p, 12, 282, 216, 30, 15);
-    u.strip = mkText(p, LV_FONT_DEFAULT, col.text, "", LV_ALIGN_TOP_MID, 0, 289);
-}
-
-// ------------------------------------------------------------ Circuit blueprint
-void circuitModule(lv_obj_t* p, int x, const char* cap, lv_color_t accent, lv_obj_t** value)
-{
-    lv_obj_t* m = mkBox(p, x, 204, 68, 64, col.card, LV_OPA_COVER, 6);
-    outline(m, 1, accent, LV_OPA_COVER);
-    mkBox(p, x + 33, 144, 2, 60, accent, LV_OPA_COVER, 0);
-    mkBox(p, x + 29, 140, 10, 10, accent, LV_OPA_COVER, LV_RADIUS_CIRCLE);
-    mkText(m, LV_FONT_DEFAULT, accent, cap, LV_ALIGN_TOP_LEFT, 6, 6);
-    *value = mkText(m, HOME_FONT_M, col.text, "--", LV_ALIGN_BOTTOM_LEFT, 6, -8);
-}
-
-void buildCircuit(lv_obj_t* p)
-{
-    CircuitUI& u = circuitUi;
-    for (int k = 1; k < 10; ++k)
-    {
-        mkBox(p, 24 * k, 0, 1, 320, col.dim, LV_OPA_20, 0);
-    }
-    for (int k = 1; k < 14; ++k)
-    {
-        mkBox(p, 0, 24 * k, 240, 1, col.dim, LV_OPA_20, 0);
-    }
-    mkText(p, LV_FONT_DEFAULT, col.a1, "PULSEON // SYS", LV_ALIGN_TOP_LEFT, 12, 12);
-    u.link = mkText(p, LV_FONT_DEFAULT, col.a3, "", LV_ALIGN_TOP_RIGHT, -12, 12);
-
-    for (int i = 0; i < 6; ++i)
-    {
-        mkBox(p, 32 + i * 32, 34, 8, 8, col.a1, LV_OPA_COVER, 1);
-    }
-    lv_obj_t* cpu = mkBox(p, 16, 40, 208, 100, col.card, LV_OPA_COVER, 6);
-    outline(cpu, 2, col.a1, LV_OPA_COVER);
-    u.time = mkText(cpu, HOME_FONT_XL, col.text, "--:--", LV_ALIGN_CENTER, 0, -10);
-    u.date = mkText(cpu, LV_FONT_DEFAULT, col.dim, "", LV_ALIGN_BOTTOM_MID, 0, -6);
-
-    circuitModule(p, 14, "HR", col.a2, &u.hr);
-    circuitModule(p, 88, "STEPS", col.a3, &u.steps);
-    circuitModule(p, 162, "PHONE", col.a4, &u.bat);
-
-    lv_obj_t* bar = mkBox(p, 14, 278, 212, 30, col.card, LV_OPA_COVER, 6);
-    outline(bar, 1, col.dim, LV_OPA_COVER);
-    u.o2 = mkText(bar, LV_FONT_DEFAULT, col.a1, "", LV_ALIGN_LEFT_MID, 8, 0);
-    u.wx = mkText(bar, LV_FONT_DEFAULT, col.text, "", LV_ALIGN_CENTER, 0, 0);
-    u.alarm = mkText(bar, LV_FONT_DEFAULT, col.a3, "", LV_ALIGN_RIGHT_MID, -8, 0);
-}
-
-// ------------------------------------------------------------ Holographic prism
-void prismPill(lv_obj_t* p, int y, const char* tag, lv_color_t accent, lv_obj_t** value)
-{
-    lv_obj_t* pill = mkBox(p, 12, y, 216, 34, col.card, 170, 17);
-    outline(pill, 1, accent, LV_OPA_COVER);
-    mkText(pill, LV_FONT_DEFAULT, accent, tag, LV_ALIGN_LEFT_MID, 12, 0);
-    *value = mkText(pill, HOME_FONT_M, col.text, "--", LV_ALIGN_RIGHT_MID, -14, 0);
-}
-
-void buildPrism(lv_obj_t* p)
-{
-    PrismUI& u = prismUi;
-    lv_obj_set_style_bg_color(p, col.bg, 0);
-    lv_obj_set_style_bg_grad_color(p, lv_color_mix(col.a1, col.bg, 90), 0);
+    RegUI& u = reg;
+    const lv_color_t gold = HEX(0xE9D29A);
+    lv_obj_set_style_bg_color(p, HEX(0x1E6B54), 0);
+    lv_obj_set_style_bg_grad_color(p, HEX(0x0A2B22), 0);
     lv_obj_set_style_bg_grad_dir(p, LV_GRAD_DIR_VER, 0);
 
-    const lv_color_t band[4] = {col.a1, col.a2, col.a3, col.a4};
-    for (int i = 0; i < 8; ++i)
-    {
-        mkBox(p, i * 30, 0, 30, 320, band[i % 4], 26, 0);
-    }
-    u.t0 = mkText(p, HOME_FONT_XL, col.a4, "--:--", LV_ALIGN_TOP_MID, 3, 62);
-    u.t1 = mkText(p, HOME_FONT_XL, col.a2, "--:--", LV_ALIGN_TOP_MID, -3, 62);
-    u.t2 = mkText(p, HOME_FONT_XL, col.text, "--:--", LV_ALIGN_TOP_MID, 0, 62);
-    u.date = mkText(p, LV_FONT_DEFAULT, col.dim, "", LV_ALIGN_TOP_MID, 0, 126);
+    u.date = tracked(mkText(p, LV_FONT_DEFAULT, gold, "", LV_ALIGN_TOP_MID, 0, 14), 4);
+    subDial(p, 60, 34, 120, "HOURS", HOME_FONT_XL, &u.hour, gold);
+    subDial(p, 20, 170, 100, "MIN", HOME_FONT_L, &u.minute, gold);
+    u.secArc = mkRing(p, 175, 215, 90, 4, gold, gold, 60);
+    u.sec = mkText(p, HOME_FONT_M, gold, "--", LV_ALIGN_TOP_LEFT, 163, 200);
+    tracked(mkText(p, LV_FONT_DEFAULT, gold, "SEC", LV_ALIGN_TOP_LEFT, 160, 226), 2);
+    u.strip = tracked(mkText(p, LV_FONT_DEFAULT, gold, "", LV_ALIGN_BOTTOM_MID, 0, -18), 1);
+}
 
-    prismPill(p, 158, "HEART", col.a4, &u.hr);
-    prismPill(p, 198, "SPO2", col.a2, &u.o2);
-    prismPill(p, 238, "STEPS", col.a1, &u.steps);
+// ------------------------------------------------------------ 5 Swiss
+void buildSwiss(lv_obj_t* p)
+{
+    SwissUI& u = swiss;
+    const lv_color_t ink = HEX(0x0A0A0A), red = HEX(0xE5251B), track = HEX(0xD6D6D0);
+    lv_obj_set_style_bg_color(p, HEX(0xF4F4F0), 0);
 
-    lv_obj_t* strip = mkBox(p, 12, 282, 216, 30, col.card, 170, 15);
-    outline(strip, 1, col.dim, LV_OPA_COVER);
-    u.strip = mkText(strip, LV_FONT_DEFAULT, col.text, "", LV_ALIGN_CENTER, 0, 0);
+    segBuild(u.h0, p, 14, 12, 100, 170, 26, ink);
+    segBuild(u.h1, p, 126, 12, 100, 170, 26, ink);
+    segBuild(u.m0, p, 16, 194, 20, 34, 7, ink);
+    segBuild(u.m1, p, 46, 194, 20, 34, 7, ink);
+    mkBox(p, 80, 208, 126, 6, ink, LV_OPA_COVER, 0);
+    mkBox(p, 214, 206, 10, 10, red, LV_OPA_COVER, LV_RADIUS_CIRCLE);
+
+    u.stepsLbl = tracked(mkText(p, LV_FONT_DEFAULT, ink, "", LV_ALIGN_TOP_LEFT, 16, 238), 2);
+    mkBox(p, 16, 258, 208, 4, track, LV_OPA_COVER, 0);
+    u.stepsFill = mkBox(p, 16, 258, 1, 4, red, LV_OPA_COVER, 0);
+    u.batLbl = tracked(mkText(p, LV_FONT_DEFAULT, ink, "", LV_ALIGN_TOP_LEFT, 16, 268), 2);
+    mkBox(p, 16, 288, 208, 4, track, LV_OPA_COVER, 0);
+    u.batFill = mkBox(p, 16, 288, 1, 4, ink, LV_OPA_COVER, 0);
+    u.foot = tracked(mkText(p, LV_FONT_DEFAULT, ink, "", LV_ALIGN_BOTTOM_LEFT, 16, -6), 2);
+}
+
+// ------------------------------------------------------------ 6 Liquid glass
+void buildGlass(lv_obj_t* p)
+{
+    GlassUI& u = glass;
+    const lv_color_t white = HEX(0xFFFFFF);
+    lv_obj_set_style_bg_color(p, HEX(0x1B1740), 0);
+    lv_obj_set_style_bg_grad_color(p, HEX(0x0B3B3A), 0);
+    lv_obj_set_style_bg_grad_dir(p, LV_GRAD_DIR_VER, 0);
+
+    u.wx = tracked(mkText(p, LV_FONT_DEFAULT, white, "", LV_ALIGN_TOP_MID, 0, 12), 2);
+    u.r1 = mkRing(p, 120, 150, 210, 10, HEX(0xFF6FA5), white, 28);
+    u.r2 = mkRing(p, 120, 150, 164, 10, HEX(0x6FE3FF), white, 28);
+    u.r3 = mkRing(p, 120, 150, 118, 10, HEX(0xB6FF6F), white, 28);
+    u.time = mkText(p, HOME_FONT_L, white, "--:--", LV_ALIGN_TOP_MID, 0, 132);
+    u.date = tracked(mkText(p, LV_FONT_DEFAULT, white, "", LV_ALIGN_TOP_MID, 0, 168), 2);
+
+    lv_obj_t* pill = mkBox(p, 14, 268, 212, 38, white, 40, 19);
+    outline(pill, 1, white, 100);
+    u.hr = mkText(p, LV_FONT_DEFAULT, white, "", LV_ALIGN_TOP_LEFT, 28, 279);
+    u.o2 = mkText(p, LV_FONT_DEFAULT, white, "", LV_ALIGN_TOP_MID, 0, 279);
+    u.alerts = mkText(p, LV_FONT_DEFAULT, white, "", LV_ALIGN_TOP_RIGHT, -28, 279);
 }
 
 void rebuild(uint8_t i)
@@ -464,12 +467,12 @@ void rebuild(uint8_t i)
 
     switch (i)
     {
-        case 0: buildBrutal(p); break;
-        case 1: buildDot(p); break;
-        case 2: buildTopo(p); break;
-        case 3: buildGlass(p); break;
-        case 4: buildCircuit(p); break;
-        default: buildPrism(p); break;
+        case 0: buildEditorial(p); break;
+        case 1: buildBento(p); break;
+        case 2: buildAura(p); break;
+        case 3: buildRegulator(p); break;
+        case 4: buildSwiss(p); break;
+        default: buildGlass(p); break;
     }
 }
 }  // namespace
@@ -492,181 +495,132 @@ void uiHomeExtBuild(lv_obj_t* panel, uint8_t kind, const HomeColors& colors)
 
 void uiHomeExtRecolor(const HomeColors& colors)
 {
-    col = colors;
-    for (uint8_t i = 0; i < FACES; ++i)
-    {
-        rebuild(i);
-    }
-    if (haveCur)
-    {
-        uiHomeExtUpdate(cur);
-    }
+    col = colors;  // these six faces use their own fixed palettes
 }
 
 namespace
 {
-void updBrut(const Strs& s)
+int dig(const HomeData& d, bool hour, bool tens)
 {
-    BrutUI& u = brut;
-    char b[28];
-    setText(u.date, s.date);
+    if (!d.timeValid)
+    {
+        return -1;
+    }
+    const int v = hour ? d.hour : d.minute;
+    return tens ? v / 10 : v % 10;
+}
+
+void updEditorial(const HomeData& d, const Strs& s)
+{
+    EditUI& u = edit;
+    segSet(u.h0, dig(d, true, true));
+    segSet(u.h1, dig(d, true, false));
+    segSet(u.m0, dig(d, false, true));
+    segSet(u.m1, dig(d, false, false));
+    setText(u.date, s.dateUp);
     setText(u.link, s.link);
-    setText(u.hour, s.hh);
-    setText(u.minute, s.mm);
-    snprintf(b, sizeof(b), "%s BPM", s.hr);
+    setText(u.wd, s.wd);
+    setText(u.dd, s.dd);
+    setText(u.mon, s.mon);
+    setText(u.hr, s.hr);
+    setText(u.steps, s.steps);
+    setText(u.bat, s.bat);
+}
+
+void updBento(const Strs& s)
+{
+    BentoUI& u = bento;
+    char b[48];
+    setText(u.date, s.dateUp);
+    setText(u.time, s.tm);
+    setText(u.hr, s.hr);
+    setText(u.steps, s.steps);
+    setText(u.bat, s.bat);
+    setText(u.o2, s.o2);
+    setText(u.wx, s.wx);
+    snprintf(b, sizeof(b), LV_SYMBOL_BELL " %s", s.alarm);
+    setText(u.alarm, b);
+    setText(u.alerts, s.notif);
+}
+
+void updAura(const Strs& s)
+{
+    AuraUI& u = aura;
+    char b[24];
+    setText(u.time, s.tm);
+    setText(u.date, s.dateUp);
+    setText(u.wx, s.wx);
+    snprintf(b, sizeof(b), "%s bpm", s.hr);
     setText(u.hr, b);
     setText(u.steps, s.steps);
     setText(u.bat, s.bat);
+}
+
+void updRegulator(const Strs& s)
+{
+    RegUI& u = reg;
+    char b[64];
+    setText(u.date, s.dateUp);
+    setText(u.hour, s.hh);
+    setText(u.minute, s.mm);
+    setText(u.sec, s.ss);
+    if (u.secArc != nullptr)
+    {
+        lv_arc_set_value(u.secArc, s.secPct);
+    }
+    snprintf(b, sizeof(b), "%s BPM  /  %s STEPS  /  %s", s.hr, s.steps, s.bat);
+    setText(u.strip, b);
+}
+
+void updSwiss(const HomeData& d, const Strs& s)
+{
+    SwissUI& u = swiss;
+    char b[48];
+    segSet(u.h0, dig(d, true, true));
+    segSet(u.h1, dig(d, true, false));
+    segSet(u.m0, dig(d, false, true));
+    segSet(u.m1, dig(d, false, false));
+    snprintf(b, sizeof(b), "STEPS %d%%", s.stepsPct);
+    setText(u.stepsLbl, b);
+    snprintf(b, sizeof(b), "PHONE %s", s.bat);
+    setText(u.batLbl, b);
     if (u.stepsFill != nullptr)
     {
-        lv_obj_set_width(u.stepsFill, 1 + s.stepsPct * 169 / 100);
+        lv_obj_set_width(u.stepsFill, 1 + s.stepsPct * 207 / 100);
     }
     if (u.batFill != nullptr)
     {
-        lv_obj_set_width(u.batFill, 1 + s.batPct * 169 / 100);
+        lv_obj_set_width(u.batFill, 1 + s.batPct * 207 / 100);
     }
-    setText(u.wx, s.wx);
-    snprintf(b, sizeof(b), LV_SYMBOL_BELL " %s", s.alarm);
-    setText(u.alarm, b);
-}
-
-void updDot(const HomeData& d, const Strs& s)
-{
-    DotUI& u = dotUi;
-    int digit[4];
-    if (d.timeValid)
-    {
-        digit[0] = d.hour / 10;
-        digit[1] = d.hour % 10;
-        digit[2] = d.minute / 10;
-        digit[3] = d.minute % 10;
-    }
-    else
-    {
-        digit[0] = digit[1] = digit[2] = digit[3] = 10;
-    }
-    for (int i = 0; i < 4; ++i)
-    {
-        if (u.shown[i] == digit[i])
-        {
-            continue;
-        }
-        u.shown[i] = (int8_t)digit[i];
-        for (int r = 0; r < 7; ++r)
-        {
-            for (int c = 0; c < 5; ++c)
-            {
-                const bool lit = ((DOT_FONT[digit[i]][r] >> (4 - c)) & 1) != 0;
-                if (u.dots[i][r][c] != nullptr)
-                {
-                    lv_obj_set_style_bg_opa(u.dots[i][r][c], lit ? LV_OPA_COVER : LV_OPA_10, 0);
-                }
-            }
-        }
-    }
-    const bool colonOn = !d.timeValid || (d.second % 2 == 0);
-    for (int i = 0; i < 2; ++i)
-    {
-        if (u.colon[i] != nullptr)
-        {
-            lv_obj_set_style_bg_opa(u.colon[i], colonOn ? LV_OPA_COVER : LV_OPA_20, 0);
-        }
-    }
-    setText(u.date, s.date);
-    setText(u.wx, s.wx);
-    setText(u.hr, s.hr);
-    setText(u.steps, s.steps);
-    setText(u.o2, s.o2);
-    setText(u.bat, s.bat);
-    const int stepsLit = s.stepsPct * 20 / 100;
-    const int batLit = (s.batPct + 5) / 10;
-    for (int i = 0; i < 20; ++i)
-    {
-        if (u.stepSq[i] != nullptr)
-        {
-            lv_obj_set_style_bg_opa(u.stepSq[i], i < stepsLit ? LV_OPA_COVER : LV_OPA_20, 0);
-        }
-    }
-    for (int i = 0; i < 10; ++i)
-    {
-        if (u.batSq[i] != nullptr)
-        {
-            lv_obj_set_style_bg_opa(u.batSq[i], i < batLit ? LV_OPA_COVER : LV_OPA_20, 0);
-        }
-    }
-}
-
-void updTopo(const Strs& s)
-{
-    TopoUI& u = topoUi;
-    char b[28];
-    if (u.arc != nullptr)
-    {
-        lv_arc_set_value(u.arc, s.stepsPct);
-    }
-    setText(u.time, s.tm);
-    setText(u.date, s.date);
-    snprintf(b, sizeof(b), "%s bpm", s.hr);
-    setText(u.hr, b);
-    setText(u.wx, s.wx);
-    setText(u.link, s.link);
-    snprintf(b, sizeof(b), LV_SYMBOL_BATTERY_3 " %s", s.bat);
-    setText(u.bat, b);
-    snprintf(b, sizeof(b), "O2 %s", s.o2);
-    setText(u.o2, b);
-    snprintf(b, sizeof(b), LV_SYMBOL_BELL " %s", s.alarm);
-    setText(u.alarm, b);
+    snprintf(b, sizeof(b), "%s   %s BPM", s.dateUp, s.hr);
+    setText(u.foot, b);
 }
 
 void updGlass(const Strs& s)
 {
-    GlassUI& u = glassUi;
-    char b[96];
+    GlassUI& u = glass;
+    char b[40];
+    setText(u.wx, s.wx);
     setText(u.time, s.tm);
-    setText(u.date, s.date);
-    setText(u.hr, s.hr);
-    setText(u.steps, s.steps);
-    setText(u.bat, s.bat);
-    setText(u.o2, s.o2);
-    snprintf(b, sizeof(b), "%s   " LV_SYMBOL_BELL " %s   " LV_SYMBOL_ENVELOPE " %s",
-             s.wx, s.alarm, s.notif);
-    setText(u.strip, b);
-}
-
-void updCircuit(const Strs& s)
-{
-    CircuitUI& u = circuitUi;
-    char b[24];
-    setText(u.time, s.tm);
-    setText(u.date, s.date);
-    setText(u.link, s.link);
-    setText(u.hr, s.hr);
-    setText(u.steps, s.steps);
-    setText(u.bat, s.bat);
-    snprintf(b, sizeof(b), "O2 %s", s.o2);
-    setText(u.o2, b);
-    setText(u.wx, s.temp);
-    snprintf(b, sizeof(b), LV_SYMBOL_BELL " %s", s.alarm);
-    setText(u.alarm, b);
-}
-
-void updPrism(const Strs& s)
-{
-    PrismUI& u = prismUi;
-    char b[96];
-    setText(u.t0, s.tm);
-    setText(u.t1, s.tm);
-    setText(u.t2, s.tm);
-    snprintf(b, sizeof(b), "%s  |  %s", s.date, s.link);
-    setText(u.date, b);
+    setText(u.date, s.dateUp);
+    if (u.r1 != nullptr)
+    {
+        lv_arc_set_value(u.r1, s.stepsPct);
+    }
+    if (u.r2 != nullptr)
+    {
+        lv_arc_set_value(u.r2, s.batPct);
+    }
+    if (u.r3 != nullptr)
+    {
+        lv_arc_set_value(u.r3, s.o2Pct);
+    }
     snprintf(b, sizeof(b), "%s bpm", s.hr);
     setText(u.hr, b);
-    setText(u.o2, s.o2);
-    snprintf(b, sizeof(b), "%s steps", s.steps);
-    setText(u.steps, b);
-    snprintf(b, sizeof(b), "%s   " LV_SYMBOL_BELL " %s   " LV_SYMBOL_ENVELOPE " %s",
-             s.wx, s.alarm, s.notif);
-    setText(u.strip, b);
+    snprintf(b, sizeof(b), "%s O2", s.o2);
+    setText(u.o2, b);
+    snprintf(b, sizeof(b), LV_SYMBOL_ENVELOPE " %s", s.notif);
+    setText(u.alerts, b);
 }
 }  // namespace
 
@@ -676,10 +630,10 @@ void uiHomeExtUpdate(const HomeData& d)
     haveCur = true;
     Strs s;
     makeStrs(d, s);
-    if (panels[0] != nullptr) updBrut(s);
-    if (panels[1] != nullptr) updDot(d, s);
-    if (panels[2] != nullptr) updTopo(s);
-    if (panels[3] != nullptr) updGlass(s);
-    if (panels[4] != nullptr) updCircuit(s);
-    if (panels[5] != nullptr) updPrism(s);
+    if (panels[0] != nullptr) updEditorial(d, s);
+    if (panels[1] != nullptr) updBento(s);
+    if (panels[2] != nullptr) updAura(s);
+    if (panels[3] != nullptr) updRegulator(s);
+    if (panels[4] != nullptr) updSwiss(d, s);
+    if (panels[5] != nullptr) updGlass(s);
 }

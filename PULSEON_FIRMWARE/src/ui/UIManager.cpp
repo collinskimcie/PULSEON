@@ -335,24 +335,24 @@ void UIManager::createFacePicker()
 
     const char* names[] =
     {
-        "BRUTALIST V2",
-        "DOT MATRIX V2",
-        "TOPO V2",
-        "GLASSMORPH V2",
-        "CIRCUIT BLUEPRINT",
-        "HOLOGRAPHIC PRISM",
+        "EDITORIAL",
+        "BENTO",
+        "AURA",
+        "REGULATOR",
+        "SWISS POSTER",
+        "LIQUID GLASS",
         "ORBIT RINGS",
         "TODAY CARDS",
         "STACKED TIME"
     };
     const char* descriptions[] =
     {
-        "Cracked steel digital",
-        "Amber LED display",
-        "Contour-map style",
-        "Soft glass and color",
-        "Technical circuit board",
-        "Prismatic digital time",
+        "Cream page, big numerals",
+        "Colorful tile grid",
+        "Soft glowing orbs",
+        "Emerald dial, sub-dials",
+        "Black type, red accent",
+        "Glowing rings on glass",
         "Rings for time and phone",
         "Colored status cards",
         "Two-tone stacked clock"
