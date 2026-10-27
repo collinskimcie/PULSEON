@@ -74,3 +74,37 @@ PULSEON/
 The firmware consumes `PULSEON_WATCH_UI` as a local PlatformIO dependency, so
 there is only one editable copy of the UI. PlatformIO dependencies and build
 outputs are regenerated under the ignored `.pio/` directory.
+
+## Wi-Fi and wireless updates
+
+### Setup
+
+1. Copy the template and fill in your network and an OTA password:
+
+   ```bash
+   cp include/wifi_secrets.h.example include/wifi_secrets.h
+   ```
+
+   `include/wifi_secrets.h` is git-ignored, so the real passwords stay local. The Wi-Fi must be 2.4 GHz.
+2. Flash once over USB: `./flash.sh`
+
+### Status icons
+
+Small Bluetooth and Wi-Fi symbols appear at the top right of every screen while the phone (Chronos app) is connected and while the watch is online.
+
+### Wi-Fi behavior
+
+- After boot the watch joins its saved networks in order, then the one in `wifi_secrets.h`. Each gets about 20 seconds. If none works it retries after 60 seconds.
+- The OTA service runs whenever the watch is online. Set `KEEP_WIFI_ON` to `false` in `src/ui/UIManager.cpp` to use Wi-Fi only while Apps > Update is open (better battery life, and Wi-Fi and Bluetooth share one radio).
+- If no network joins from the Update page, the watch opens its own network `PULSEON-Setup` (password `pulseon1`). Join it from a phone, open `http://192.168.4.1`, and save a network. Up to 5 networks are stored on the watch.
+
+### Wireless update
+
+1. Make sure the PC is on the same network as the watch.
+2. Run `./ota.sh <watch-ip>`. The watch prints its IP in the serial monitor (`[WIFI] keep-alive: online, IP ...` or `[UPDATE] ready, IP ...`).
+3. The watch reboots by itself. About 30 seconds later the monitor shows `[OTA] firmware marked valid: ESP_OK`. A firmware that crashes before that point rolls back to the previous version.
+
+### Limits
+
+- Networks with a browser login page (captive portal) or username-and-password login (WPA2-Enterprise) cannot be joined.
+- Some networks block devices from talking to each other (client isolation). Wireless updates fail there; use USB or a phone hotspot.
