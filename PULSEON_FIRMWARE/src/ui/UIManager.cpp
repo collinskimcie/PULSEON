@@ -184,6 +184,7 @@ void UIManager::begin(AppStateManager* state)
     Serial.println("[UI] Initializing six-screen health interface...");
     PULSEON_WATCH_UI_init(nullptr);
     createScreens();
+    rebuildClassicFaces();
     overlays.begin(appState, chronos);
     apps.begin(appState, chronos, &overlays);
     sysui.begin(appState, chronos, &apps);
@@ -606,6 +607,30 @@ void UIManager::showScreen(Screen screen, bool fade)
     }
 }
 
+void UIManager::rebuildClassicFaces()
+{
+    for (uint8_t face = 0; face < 6; ++face)
+    {
+        lv_obj_t* panel = homeFaces[face];
+        if (panel == nullptr)
+        {
+            continue;
+        }
+        faceClock[face] = nullptr;
+        faceDate[face] = nullptr;
+        faceHeart[face] = nullptr;
+        faceSteps[face] = nullptr;
+        faceBattery[face] = nullptr;
+        faceWeather[face] = nullptr;
+        faceOxygen[face] = nullptr;
+        lv_obj_clean(panel);
+        lv_obj_set_pos(panel, 0, 0);
+        lv_obj_set_size(panel, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        lv_obj_set_style_radius(panel, 0, 0);
+        uiHomeBuildFace(panel, HOME_FACE_BRUTALIST + face, homeColorsFor(homeThemeIndex));
+    }
+}
+
 void UIManager::applyHomeFace()
 {
     for (uint8_t face = 0; face < 9; ++face)
@@ -931,6 +956,11 @@ void UIManager::updateScreens()
                      static_cast<unsigned>(state.alarms[best].minute));
         }
         home.notifCount = state.notificationStored;
+        home.heartRate = heartRate;
+        home.steps = steps;
+        home.oxygen = bloodOxygen;
+        home.connected = state.phoneConnected;
+        home.charging = state.phoneCharging;
 
         const uint32_t pollNow = millis();
         if (pollNow - lastThemePollMs >= 1000)

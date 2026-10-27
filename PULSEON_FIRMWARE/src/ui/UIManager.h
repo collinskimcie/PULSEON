@@ -42,6 +42,7 @@ private:
     void showConnectionToast(bool connected);
     void updateScreens();
     void applyHomeFace();
+    void rebuildClassicFaces();
     lv_obj_t* createScreen(Screen screen);
 
     struct FaceSelectionContext

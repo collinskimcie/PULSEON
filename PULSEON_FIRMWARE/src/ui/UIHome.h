@@ -14,7 +14,14 @@ enum HomeFaceKind : uint8_t
     HOME_FACE_ORBIT = 0,
     HOME_FACE_TODAY = 1,
     HOME_FACE_STACK = 2,
-    HOME_FACE_KINDS = 3
+    HOME_FACE_KINDS = 3,  // the three extra faces
+    HOME_FACE_BRUTALIST = 3,
+    HOME_FACE_DOT = 4,
+    HOME_FACE_TOPO = 5,
+    HOME_FACE_GLASS = 6,
+    HOME_FACE_CIRCUIT = 7,
+    HOME_FACE_PRISM = 8,
+    HOME_FACE_TOTAL = 9
 };
 
 struct HomeColors
@@ -44,6 +51,11 @@ struct HomeData
     char nextAlarm[8] = "--:--";
     uint8_t notifCount = 0;
     bool timeValid = false;  // false until the phone has synced the clock
+    uint16_t heartRate = 0;  // 0 = no reading
+    uint16_t steps = 0;
+    uint8_t oxygen = 0;      // SpO2 percent, 0 = no reading
+    bool connected = false;  // phone link
+    bool charging = false;
 };
 
 // Fills `panel` with one face. Call once per face after the panel exists.
@@ -54,3 +66,8 @@ void uiHomeUpdate(const HomeData& data);
 
 // Call after a theme change. Rebuilds the built faces with the new colors.
 void uiHomeRecolor(const HomeColors& colors);
+
+// Internal: the six classic faces live in UIHomeFaces.cpp.
+void uiHomeExtBuild(lv_obj_t* panel, uint8_t kind, const HomeColors& colors);
+void uiHomeExtUpdate(const HomeData& data);
+void uiHomeExtRecolor(const HomeColors& colors);

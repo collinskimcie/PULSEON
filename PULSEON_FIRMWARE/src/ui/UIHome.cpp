@@ -282,7 +282,12 @@ void rebuild(uint8_t kind)
 
 void uiHomeBuildFace(lv_obj_t* panel, uint8_t kind, const HomeColors& colors)
 {
-    if (panel == nullptr || kind >= HOME_FACE_KINDS)
+    if (kind >= HOME_FACE_KINDS)
+    {
+        uiHomeExtBuild(panel, kind, colors);
+        return;
+    }
+    if (panel == nullptr)
     {
         return;
     }
@@ -298,6 +303,7 @@ void uiHomeBuildFace(lv_obj_t* panel, uint8_t kind, const HomeColors& colors)
 void uiHomeRecolor(const HomeColors& colors)
 {
     col = colors;
+    uiHomeExtRecolor(colors);
     for (uint8_t k = 0; k < HOME_FACE_KINDS; ++k)
     {
         rebuild(k);
@@ -312,6 +318,7 @@ void uiHomeUpdate(const HomeData& d)
 {
     last = d;
     haveData = true;
+    uiHomeExtUpdate(d);
 
     char tm[8], date[24], temp[12], bat[8], num[8], line[40];
     snprintf(tm, sizeof(tm), "%02d:%02d", (int)d.hour, (int)d.minute);
