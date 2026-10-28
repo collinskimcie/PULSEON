@@ -192,27 +192,24 @@ void wifiConnectBegin()
 {
     loadSaved();
     candCount = 0;
+
+    // keep the secrets network first, then the saved ones
+#ifdef WIFI_SSID
+    strlcpy(cand[candCount].ssid, WIFI_SSID, sizeof(cand[0].ssid));
+    strlcpy(cand[candCount].pass, WIFI_PASSWORD, sizeof(cand[0].pass));
+    ++candCount;
+#endif
+
     for (uint8_t i = 0; i < savedCount && candCount < MAX_CAND; ++i)
     {
-        cand[candCount++] = saved[i];
-    }
-
 #ifdef WIFI_SSID
-    bool dup = false;
-    for (uint8_t i = 0; i < savedCount; ++i)
-    {
         if (strcmp(saved[i].ssid, WIFI_SSID) == 0)
         {
-            dup = true;
+            continue;
         }
-    }
-    if (!dup && candCount < MAX_CAND)
-    {
-        strlcpy(cand[candCount].ssid, WIFI_SSID, sizeof(cand[0].ssid));
-        strlcpy(cand[candCount].pass, WIFI_PASSWORD, sizeof(cand[0].pass));
-        ++candCount;
-    }
 #endif
+        cand[candCount++] = saved[i];
+    }
 
     candIdx = 0;
     beginCandidate();
