@@ -146,7 +146,7 @@ void loop()
     uiManager.update();
 
     static uint32_t lastMemLogMs = 0;
-    if (millis() - lastMemLogMs >= 5000)
+    if (millis() - lastMemLogMs >= 60000)
     {
         lastMemLogMs = millis();
         logLvglMemory("running");

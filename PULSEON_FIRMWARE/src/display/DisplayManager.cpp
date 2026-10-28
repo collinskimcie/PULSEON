@@ -10,7 +10,7 @@ using namespace esp_panel::drivers;
 
 static constexpr int32_t DISPLAY_WIDTH = PULSEON_UI_WIDTH;
 static constexpr int32_t DISPLAY_HEIGHT = PULSEON_UI_HEIGHT;
-static constexpr int32_t DISPLAY_DRAW_BUFFER_ROWS = 20;
+static constexpr int32_t DISPLAY_DRAW_BUFFER_ROWS = 60;
 
 DisplayManager* DisplayManager::instance = nullptr;
 
@@ -126,6 +126,8 @@ bool DisplayManager::begin()
         {
             lv_indev_set_type(inputDevice, LV_INDEV_TYPE_POINTER);
             lv_indev_set_read_cb(inputDevice, touchReadCallback);
+            lv_indev_set_scroll_limit(inputDevice, 6);
+            lv_indev_set_scroll_throw(inputDevice, 6);
 
             Serial.println("[DISPLAY] LVGL touch input registered");
         }
