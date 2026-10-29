@@ -1,4 +1,5 @@
 #include "UISystem.h"
+#include "UIUtils.h"
 
 #include <Preferences.h>
 #include <stdio.h>
@@ -779,7 +780,8 @@ void UISystem::poll()
     // Idle dimming
     const uint16_t limit = TIMEOUT_SECONDS[timeoutIdx];
     const uint32_t idle = lv_display_get_inactive_time(nullptr);
-    if (limit > 0 && idle >= static_cast<uint32_t>(limit) * 1000UL)
+    const bool keepAwake = st.callActive || st.alarmRinging >= 0 || uiUtilsKeepAwake();
+    if (!keepAwake && limit > 0 && idle >= static_cast<uint32_t>(limit) * 1000UL)
     {
         if (!dimmed)
         {

@@ -223,6 +223,11 @@ void flClick(lv_event_t*)
 }
 }  // namespace
 
+bool uiUtilsKeepAwake()
+{
+    return swRoot != nullptr || tmRoot != nullptr || flRoot != nullptr;
+}
+
 void uiStopwatchOpen(void*)
 {
     if (swRoot != nullptr)

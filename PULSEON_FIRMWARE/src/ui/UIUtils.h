@@ -9,3 +9,6 @@ void uiFlashlightOpen(void* user);
 
 // Call from the main UI loop (keeps the stopwatch, timer and alert running)
 void uiUtilsPoll();
+
+// True while the stopwatch, timer or flashlight screen is open
+bool uiUtilsKeepAwake();
