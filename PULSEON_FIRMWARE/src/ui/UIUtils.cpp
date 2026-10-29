@@ -212,6 +212,7 @@ void tmClick(lv_event_t* e)
 
 // ------------------------------------------------------------ Flashlight
 lv_obj_t* flRoot = nullptr;
+uint32_t flOpenedMs = 0;
 
 void flClick(lv_event_t*)
 {
@@ -291,6 +292,7 @@ void uiFlashlightOpen(void*)
         return;
     }
     flRoot = newRoot(nullptr);
+    flOpenedMs = millis();
     lv_obj_set_style_bg_color(flRoot, lv_color_hex(0xFFFFFF), 0);
     mkLabel(flRoot, "Tap to close", font_body, lv_color_hex(0x777777), LV_ALIGN_BOTTOM_MID, 0, -14);
     lv_obj_add_event_cb(flRoot, flClick, LV_EVENT_CLICKED, nullptr);
@@ -299,6 +301,12 @@ void uiFlashlightOpen(void*)
 void uiUtilsPoll()
 {
     const uint32_t now = millis();
+
+    if (flRoot != nullptr && now - flOpenedMs > 180000UL)
+    {
+        lv_obj_delete_async(flRoot);
+        flRoot = nullptr;
+    }
 
     if (tmRunning)
     {
