@@ -1,4 +1,5 @@
 #include "UIApps.h"
+#include "UIUtils.h"
 
 #include <stdio.h>
 #include <time.h>
@@ -422,6 +423,7 @@ void UIApps::showPage(Page page)
 
     lv_obj_clear_flag(roots[page], LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(roots[page]);
+    uiSlideIn(roots[page]);
 }
 
 void UIApps::actionClicked(lv_event_t* event)

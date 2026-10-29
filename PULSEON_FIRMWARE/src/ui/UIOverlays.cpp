@@ -1,4 +1,5 @@
 #include "UIOverlays.h"
+#include "UIUtils.h"
 #include "UIText.h"
 #include "UITheme.h"
 
@@ -442,6 +443,7 @@ void UIOverlays::showHistory()
     rebuildHistory();
     lv_obj_clear_flag(historyRoot, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(historyRoot);
+    uiSlideIn(historyRoot);
 
     // Calls and alarms must stay on top.
     if (callVisible) lv_obj_move_foreground(callRoot);

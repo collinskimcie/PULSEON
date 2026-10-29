@@ -12,3 +12,6 @@ void uiUtilsPoll();
 
 // True while the stopwatch, timer or flashlight screen is open
 bool uiUtilsKeepAwake();
+
+// Slides a freshly shown panel up into place (no extra memory, ends at y = 0)
+void uiSlideIn(lv_obj_t* obj);

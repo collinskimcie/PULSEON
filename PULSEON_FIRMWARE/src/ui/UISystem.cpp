@@ -412,6 +412,7 @@ void UISystem::showPage(Page page)
 
     lv_obj_clear_flag(roots[page], LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(roots[page]);
+    if (page != PAGE_QUICK) uiSlideIn(roots[page]);
 }
 
 void UISystem::refreshSettingsLabels()

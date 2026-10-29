@@ -223,6 +223,29 @@ void flClick(lv_event_t*)
 }
 }  // namespace
 
+static void slideExec(void* o, int32_t v)
+{
+    lv_obj_set_y(static_cast<lv_obj_t*>(o), v);
+}
+
+void uiSlideIn(lv_obj_t* obj)
+{
+    if (obj == nullptr)
+    {
+        return;
+    }
+    lv_anim_delete(obj, slideExec);
+    lv_obj_set_y(obj, 40);
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, obj);
+    lv_anim_set_exec_cb(&a, slideExec);
+    lv_anim_set_values(&a, 40, 0);
+    lv_anim_set_duration(&a, 180);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_start(&a);
+}
+
 bool uiUtilsKeepAwake()
 {
     return swRoot != nullptr || tmRoot != nullptr || flRoot != nullptr;
