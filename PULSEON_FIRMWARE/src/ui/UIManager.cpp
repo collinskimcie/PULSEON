@@ -930,7 +930,10 @@ UIManager::Screen UIManager::getCurrentScreen() const
 bool uiUpdateRadioActive();
 
 // Set to false to go back to Wi-Fi only while the Update page is open.
-static constexpr bool KEEP_WIFI_ON = true;
+#ifndef PULSEON_KEEP_WIFI
+#define PULSEON_KEEP_WIFI 1
+#endif
+static constexpr bool KEEP_WIFI_ON = PULSEON_KEEP_WIFI != 0;
 
 static uint32_t keepAtMs = 0;
 static uint32_t keepSinceMs = 0;
