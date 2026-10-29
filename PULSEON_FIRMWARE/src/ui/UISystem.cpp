@@ -795,6 +795,8 @@ void UISystem::poll()
         applyBrightness(brightness);
     }
 
+    setWakeShield(dimmed);
+
     if (current == PAGE_BLUETOOTH && now - lastRefreshMs >= 500)
     {
         lastRefreshMs = now;
@@ -804,5 +806,34 @@ void UISystem::poll()
     {
         lastRefreshMs = now;
         refreshQuick();
+    }
+}
+
+
+// While the screen is dimmed, an invisible full-screen object absorbs touches so the
+// tap that wakes the screen cannot press a button underneath it.
+void UISystem::setWakeShield(bool on)
+{
+    if (wakeShield == nullptr)
+    {
+        if (!on)
+        {
+            return;
+        }
+        wakeShield = lv_obj_create(lv_layer_sys());
+        lv_obj_remove_style_all(wakeShield);
+        lv_obj_set_size(wakeShield, LV_PCT(100), LV_PCT(100));
+        lv_obj_add_flag(wakeShield, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_remove_flag(wakeShield, LV_OBJ_FLAG_SCROLLABLE);
+    }
+
+    const bool hidden = lv_obj_has_flag(wakeShield, LV_OBJ_FLAG_HIDDEN);
+    if (on && hidden)
+    {
+        lv_obj_remove_flag(wakeShield, LV_OBJ_FLAG_HIDDEN);
+    }
+    else if (!on && !hidden)
+    {
+        lv_obj_add_flag(wakeShield, LV_OBJ_FLAG_HIDDEN);
     }
 }

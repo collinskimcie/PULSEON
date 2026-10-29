@@ -80,6 +80,7 @@ private:
     void loadPrefs();
     void savePrefs();
     void applyBrightness(uint8_t percent);
+    void setWakeShield(bool on);
     void refreshSettingsLabels();
     void refreshQuick();
     void refreshBluetooth();
@@ -100,6 +101,7 @@ private:
     uint8_t timeoutIdx = 4;
     bool h24 = true;
     bool dimmed = false;
+    lv_obj_t* wakeShield = nullptr;
     lv_obj_t* brightnessSlider = nullptr;
     lv_obj_t* brightnessLabel = nullptr;
     lv_obj_t* timeoutLabel = nullptr;
