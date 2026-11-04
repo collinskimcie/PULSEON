@@ -109,6 +109,30 @@ void appendUtf8(String& out, uint32_t cp)
 }
 } // namespace
 
+static bool appendAsciiFallback(String& out, uint32_t cp)
+{
+    switch (cp)
+    {
+        case 0x2018: case 0x2019: case 0x201B: case 0x2032: out += '\''; return true;
+        case 0x201C: case 0x201D: case 0x201F: case 0x2033: out += '"'; return true;
+        case 0x2013: case 0x2014: case 0x2212: out += '-'; return true;
+        case 0x2026: out += "..."; return true;
+        case 0x2022: case 0x00B7: out += '*'; return true;
+        case 0x00A0: case 0x2009: case 0x200A: case 0x202F: out += ' '; return true;
+        default: break;
+    }
+    // Latin-1 letters with accents -> plain base letter
+    static const char kLatin1[] =
+        "AAAAAAACEEEEIIIIDNOOOOOxOUUUUYTs"   // 0xC0-0xDF
+        "aaaaaaaceeeeiiiidnooooo/ouuuuyty";  // 0xE0-0xFF
+    if (cp >= 0xC0 && cp <= 0xFF)
+    {
+        out += kLatin1[cp - 0xC0];
+        return true;
+    }
+    return false;
+}
+
 String uiText(const String& in)
 {
     String out;
@@ -146,7 +170,10 @@ String uiText(const String& in)
                 out += static_cast<char>(data[i + k]);
             }
         }
-        // anything else (other emoji, variation selectors, accents) is dropped
+        else
+        {
+            appendAsciiFallback(out, cp);  // curly quotes, dashes, accents -> ASCII
+        }
 
         i += n;
     }
