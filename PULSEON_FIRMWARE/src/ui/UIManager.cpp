@@ -220,7 +220,7 @@ void UIManager::begin(AppStateManager* state)
     }
     restoreClock();
 
-    Serial.println("[UI] Initializing six-screen health interface...");
+    Serial.println("[UI] Initializing interface...");
     PULSEON_WATCH_UI_init(nullptr);
     createScreens();
     rebuildClassicFaces();
@@ -236,7 +236,7 @@ void UIManager::begin(AppStateManager* state)
     showScreen(SCREEN_WATCH_HOME);
     updateScreens();
     lastUpdateMs = millis();
-    Serial.println("[UI] Six-screen health interface initialized");
+    Serial.println("[UI] Interface initialized");
 }
 
 static void createStatusIcons();
