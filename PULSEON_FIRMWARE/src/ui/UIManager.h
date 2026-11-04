@@ -64,9 +64,9 @@ private:
     lv_obj_t* connectionToast = nullptr;
     lv_obj_t* connectionToastLabel = nullptr;
     lv_timer_t* connectionToastTimer = nullptr;
-    lv_obj_t* homeFaces[9] = {};
-    lv_obj_t* faceSelectionButtons[9] = {};
-    FaceSelectionContext faceSelectionContexts[9] = {};
+    lv_obj_t* homeFaces[15] = {};
+    lv_obj_t* faceSelectionButtons[15] = {};
+    FaceSelectionContext faceSelectionContexts[15] = {};
     uint8_t selectedHomeFace = 0;
     uint8_t homeThemeIndex = 0;
     uint32_t lastThemePollMs = 0;

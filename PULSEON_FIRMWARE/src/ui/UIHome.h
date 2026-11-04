@@ -57,6 +57,8 @@ struct HomeData
     bool connected = false;  // phone link
     bool charging = false;
     uint16_t stepGoal = 10000;
+    char notifApp[16] = "";
+    char notifTitle[32] = "";
 };
 
 // Fills `panel` with one face. Call once per face after the panel exists.

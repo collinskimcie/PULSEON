@@ -10,6 +10,17 @@
 #include "UIUtils.h"
 #include "PULSEON_WATCH_UI.h"
 
+#include "UIHomeNew.h"
+#include "chronos/ChronosManager.h"
+
+// Home faces shown in the picker: Editorial, Bento, Analog, Ember Eyes, Wayfinder Red.
+static const uint8_t kVisibleFaces[8] = {0, 1, 12, 13, 9, 14, 10, 11};
+static bool isVisibleFace(uint8_t f)
+{
+    for (uint8_t i = 0; i < 8; ++i) { if (kVisibleFaces[i] == f) return true; }
+    return false;
+}
+
 namespace
 {
 constexpr int32_t DISPLAY_WIDTH = 240;
@@ -178,7 +189,7 @@ void UIManager::begin(AppStateManager* state)
         Serial.println("[UI] WARNING: Could not load saved home face; using face 1");
         selectedHomeFace = 0;
     }
-    if (selectedHomeFace >= 9)
+    if (!isVisibleFace(selectedHomeFace))
     {
         selectedHomeFace = 0;
     }
@@ -489,6 +500,95 @@ static HomeColors homeColorsFor(uint8_t themeIndex)
     return c;
 }
 
+// ---- Face picker thumbnails -------------------------------------------
+// Captured each time the picker opens, one face per timer tick, and kept small
+// (48x64 RGB565, about 6 KB each) in LVGL's pool, which lives in PSRAM.
+static constexpr uint32_t THUMB_W = 48;
+static constexpr uint32_t THUMB_H = 64;
+static lv_obj_t* gThumbFaces[15] = {};
+static lv_obj_t* gThumbImg[15] = {};
+static lv_draw_buf_t* gThumb[15] = {};
+static uint8_t gThumbNext = 15;  // 15 = idle
+
+static void thumbDownscale(const lv_draw_buf_t* big, lv_draw_buf_t* small)
+{
+    const uint32_t bw = big->header.w;
+    const uint32_t bh = big->header.h;
+    const uint8_t* bigData = reinterpret_cast<const uint8_t*>(big->data);
+    uint8_t* smallData = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(small->data));
+
+    for (uint32_t y = 0; y < THUMB_H; ++y)
+    {
+        const uint32_t y0 = y * bh / THUMB_H;
+        uint32_t y1 = (y + 1) * bh / THUMB_H;
+        if (y1 <= y0) y1 = y0 + 1;
+        uint16_t* out = reinterpret_cast<uint16_t*>(smallData + y * small->header.stride);
+
+        for (uint32_t x = 0; x < THUMB_W; ++x)
+        {
+            const uint32_t x0 = x * bw / THUMB_W;
+            uint32_t x1 = (x + 1) * bw / THUMB_W;
+            if (x1 <= x0) x1 = x0 + 1;
+
+            uint32_t r = 0, g = 0, b = 0, n = 0;
+            for (uint32_t sy = y0; sy < y1; ++sy)
+            {
+                const uint16_t* row = reinterpret_cast<const uint16_t*>(bigData + sy * big->header.stride);
+                for (uint32_t sx = x0; sx < x1; ++sx)
+                {
+                    const uint16_t p = row[sx];
+                    r += p >> 11;
+                    g += (p >> 5) & 0x3F;
+                    b += p & 0x1F;
+                    ++n;
+                }
+            }
+            out[x] = static_cast<uint16_t>(((r / n) << 11) | ((g / n) << 5) | (b / n));
+        }
+    }
+}
+
+static void thumbCaptureStep(lv_timer_t*)
+{
+    if (gThumbNext >= 15) return;
+    const uint8_t face = gThumbNext++;
+    lv_obj_t* src = gThumbFaces[face];
+    lv_obj_t* img = gThumbImg[face];
+    if (src == nullptr || img == nullptr) return;
+
+    // Hidden objects are not rendered, so show the face just for the capture.
+    const bool wasHidden = lv_obj_has_flag(src, LV_OBJ_FLAG_HIDDEN);
+    if (wasHidden) lv_obj_remove_flag(src, LV_OBJ_FLAG_HIDDEN);
+    lv_draw_buf_t* big = lv_snapshot_take(src, LV_COLOR_FORMAT_RGB565);
+    if (wasHidden) lv_obj_add_flag(src, LV_OBJ_FLAG_HIDDEN);
+
+    if (big == nullptr)
+    {
+        Serial.printf("[UI] thumb %u: snapshot failed\n", static_cast<unsigned>(face));
+        return;
+    }
+    if (gThumb[face] == nullptr)
+    {
+        gThumb[face] = lv_draw_buf_create(THUMB_W, THUMB_H, LV_COLOR_FORMAT_RGB565, 0);
+    }
+    if (gThumb[face] != nullptr)
+    {
+        thumbDownscale(big, gThumb[face]);
+        lv_image_set_src(img, gThumb[face]);
+        lv_obj_invalidate(img);
+    }
+    lv_draw_buf_destroy(big);
+}
+
+static void thumbStartCapture(lv_obj_t* const* faces)
+{
+    if (gThumbNext < 15) return;  // a capture is already running
+    for (uint8_t i = 0; i < 15; ++i) gThumbFaces[i] = faces[i];
+    gThumbNext = 0;
+    lv_timer_t* t = lv_timer_create(thumbCaptureStep, 40, nullptr);
+    lv_timer_set_repeat_count(t, 15);
+}
+
 void UIManager::createFacePicker()
 {
     facePickerRoot = lv_obj_create(nullptr);
@@ -505,7 +605,7 @@ void UIManager::createFacePicker()
     lv_obj_set_style_pad_all(facePickerRoot, 0, 0);
     lv_obj_clear_flag(facePickerRoot, LV_OBJ_FLAG_SCROLLABLE);
     createLabel(facePickerRoot, "CHOOSE HOME FACE", MARGIN, 11, CONTENT_WIDTH, 28, font_h4, UI_COLOR_TEXT);
-    createLabel(facePickerRoot, "Tap to preview and save", MARGIN, 38, CONTENT_WIDTH, 18, font_body, UI_COLOR_MUTED);
+    createLabel(facePickerRoot, "Tap a face to use it", MARGIN, 38, CONTENT_WIDTH, 18, font_body, UI_COLOR_MUTED);
 
     const char* names[] =
     {
@@ -517,7 +617,13 @@ void UIManager::createFacePicker()
         "LIQUID GLASS",
         "ORBIT RINGS",
         "TODAY CARDS",
-        "STACKED TIME"
+        "STACKED TIME",
+        "ANALOG",
+        "EMBER EYES",
+        "WAYFINDER RED",
+        "STACK",
+        "GLANCE",
+        "NOW"
     };
     const char* descriptions[] =
     {
@@ -529,7 +635,13 @@ void UIManager::createFacePicker()
         "Glowing rings on glass",
         "Rings for time and phone",
         "Colored status cards",
-        "Two-tone stacked clock"
+        "Two-tone stacked clock",
+        "Clean dial, two complications",
+        "Blinking, glancing eyes",
+        "Red night dashboard",
+        "Huge two-line time",
+        "Time plus live cards",
+        "Music and messages"
     };
 
     lv_obj_t* faceList = lv_obj_create(facePickerRoot);
@@ -539,16 +651,23 @@ void UIManager::createFacePicker()
     lv_obj_set_scroll_dir(faceList, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(faceList, LV_SCROLLBAR_MODE_OFF);
 
-    for (uint8_t face = 0; face < 9; ++face)
+    for (uint8_t slot = 0; slot < 8; ++slot)
     {
+        const uint8_t face = kVisibleFaces[slot];
         lv_obj_t* button = lv_button_create(faceList);
-        const int32_t y = static_cast<int32_t>(face) * 36;
+        const int32_t y = static_cast<int32_t>(slot) * 76;
         lv_obj_set_pos(button, 0, y);
-        lv_obj_set_size(button, CONTENT_WIDTH, 32);
+        lv_obj_set_size(button, CONTENT_WIDTH, 72);
         styleButton(button, face == selectedHomeFace);
         faceSelectionButtons[face] = button;
-        createLabel(button, names[face], 9, 2, CONTENT_WIDTH - 18, 14, font_body, UI_COLOR_ACCENT);
-        createLabel(button, descriptions[face], 9, 16, CONTENT_WIDTH - 18, 14, font_body, UI_COLOR_TEXT);
+        lv_obj_t* thumb = lv_image_create(button);
+        lv_obj_set_pos(thumb, 8, 4);
+        lv_obj_set_size(thumb, 48, 64);
+        lv_obj_set_style_bg_color(thumb, lv_color_hex(0x20232A), 0);
+        lv_obj_set_style_bg_opa(thumb, LV_OPA_COVER, 0);
+        gThumbImg[face] = thumb;
+        createLabel(button, names[face], 66, 8, CONTENT_WIDTH - 74, 17, font_body, UI_COLOR_ACCENT);
+        createLabel(button, descriptions[face], 66, 28, CONTENT_WIDTH - 74, 34, font_body, UI_COLOR_TEXT);
         faceSelectionContexts[face] = {this, face};
         lv_obj_add_event_cb(
             button,
@@ -605,6 +724,20 @@ lv_obj_t* UIManager::createScreen(Screen screen)
                 lv_obj_add_flag(panel, LV_OBJ_FLAG_HIDDEN);
                 homeFaces[6 + kind] = panel;
                 uiHomeBuildFace(panel, kind, homeColorsFor(homeThemeIndex));
+            }
+
+            for (uint8_t nk = 0; nk < NEW_FACE_COUNT; ++nk)
+            {
+                lv_obj_t* np = lv_obj_create(root);
+                lv_obj_set_pos(np, 0, 0);
+                lv_obj_set_size(np, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+                lv_obj_set_style_border_width(np, 0, 0);
+                lv_obj_set_style_radius(np, 0, 0);
+                lv_obj_set_style_pad_all(np, 0, 0);
+                lv_obj_add_flag(np, LV_OBJ_FLAG_EVENT_BUBBLE);
+                lv_obj_add_flag(np, LV_OBJ_FLAG_HIDDEN);
+                homeFaces[9 + nk] = np;
+                uiNewBuildFace(np, nk, homeColorsFor(homeThemeIndex));
             }
 
             lv_obj_t* brutalist = homeFaces[0];
@@ -807,7 +940,7 @@ void UIManager::rebuildClassicFaces()
 
 void UIManager::applyHomeFace()
 {
-    for (uint8_t face = 0; face < 9; ++face)
+    for (uint8_t face = 0; face < 15; ++face)
     {
         if (homeFaces[face] != nullptr)
         {
@@ -822,14 +955,39 @@ void UIManager::applyHomeFace()
         }
         if (faceSelectionButtons[face] != nullptr)
         {
-            styleButton(faceSelectionButtons[face], face == selectedHomeFace);
+            if (faceSelectionButtons[face] != nullptr) { styleButton(faceSelectionButtons[face], face == selectedHomeFace); }
         }
+    }
+}
+
+static ChronosManager* gMusicChronos = nullptr;
+static bool gMusicPlaying = false;
+
+static void newFaceMusicHandler(uint8_t action)
+{
+    if (gMusicChronos == nullptr)
+    {
+        return;
+    }
+    if (action == 0)
+    {
+        gMusicChronos->controlMusic(MUSIC_PREVIOUS);
+    }
+    else if (action == 2)
+    {
+        gMusicChronos->controlMusic(MUSIC_NEXT);
+    }
+    else
+    {
+        gMusicChronos->controlMusic(MUSIC_TOGGLE);
     }
 }
 
 void UIManager::attachChronos(ChronosManager* chronosManager)
 {
     chronos = chronosManager;
+    gMusicChronos = chronosManager;
+    uiNewSetMusicHandler(newFaceMusicHandler);
 }
 
 void UIManager::openFacePickerCallback(lv_event_t* event)
@@ -842,13 +1000,15 @@ void UIManager::openFacePickerCallback(lv_event_t* event)
 
     ui->facePickerReturnScreen = ui->currentScreen;
     lv_screen_load(ui->facePickerRoot);
+
+    thumbStartCapture(ui->homeFaces);
 }
 
 void UIManager::selectHomeFaceCallback(lv_event_t* event)
 {
     FaceSelectionContext* selection =
         static_cast<FaceSelectionContext*>(lv_event_get_user_data(event));
-    if (selection == nullptr || selection->manager == nullptr || selection->face >= 9)
+    if (selection == nullptr || selection->manager == nullptr || selection->face >= 15)
     {
         return;
     }
@@ -1240,6 +1400,8 @@ void UIManager::updateScreens()
                      static_cast<unsigned>(state.alarms[best].minute));
         }
         home.notifCount = state.notificationStored;
+        snprintf(home.notifApp, sizeof(home.notifApp), "%s", state.notificationApp.c_str());
+        snprintf(home.notifTitle, sizeof(home.notifTitle), "%s", state.notificationTitle.c_str());
         home.heartRate = heartRate;
         home.steps = steps;
         home.oxygen = bloodOxygen;
@@ -1256,9 +1418,11 @@ void UIManager::updateScreens()
             {
                 homeThemeIndex = themeNow;
                 uiHomeRecolor(homeColorsFor(homeThemeIndex));
+                uiNewRecolor(homeColorsFor(homeThemeIndex));
             }
         }
         uiHomeUpdate(home);
+        uiNewUpdate(home);
     }
 
 }
