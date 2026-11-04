@@ -73,7 +73,7 @@ bool DisplayManager::begin()
     if (backlight != nullptr)
     {
         Serial.println("[DISPLAY] Backlight driver available");
-        backlight->setBrightness(100);
+        applyBrightness(userBrightness);
     }
 
     /*
@@ -93,6 +93,9 @@ bool DisplayManager::begin()
         "[DISPLAY] LVGL tick source registered; current tick: %lu ms\n",
         static_cast<unsigned long>(lv_tick_get())
     );
+
+    lastActivityMs = millis();
+    lv_timer_create(sleepTimerCb, 250, nullptr);
 
     static lv_color16_t drawBuffer[DISPLAY_WIDTH * DISPLAY_DRAW_BUFFER_ROWS];
 
@@ -240,6 +243,7 @@ void DisplayManager::touchReadCallback(
 
     if (points.empty())
     {
+        instance->swallowTouch = false;
         data->state = LV_INDEV_STATE_RELEASED;
         return;
     }
@@ -252,8 +256,26 @@ void DisplayManager::touchReadCallback(
     if (px < 0 || px > 239 || py < 0 || py > 319)
     {
         // The controller sometimes returns a garbage point; hold the last good one.
-        data->state = LV_INDEV_STATE_PRESSED;
+        const bool block = instance->swallowTouch ||
+                           instance->screenState == ScreenState::Off;
+        data->state = block ? LV_INDEV_STATE_RELEASED : LV_INDEV_STATE_PRESSED;
         data->point = lastPoint;
+        return;
+    }
+
+    // Valid touch: counts as activity and wakes the screen.
+    instance->lastActivityMs = millis();
+    if (instance->screenState != ScreenState::Awake)
+    {
+        if (instance->screenState == ScreenState::Off)
+        {
+            instance->swallowTouch = true;   // eat the waking tap
+        }
+        instance->wake();
+    }
+    if (instance->swallowTouch)
+    {
+        data->state = LV_INDEV_STATE_RELEASED;
         return;
     }
     if (PULSEON_TOUCH_FLIP_X)
@@ -278,14 +300,76 @@ void DisplayManager::touchReadCallback(
     (void)indev;
 }
 
+void DisplayManager::applyBrightness(uint8_t percent)
+{
+    if (backlight != nullptr)
+    {
+        backlight->setBrightness(percent);
+    }
+}
+
 void DisplayManager::setBrightness(uint8_t percent)
 {
     if (percent > 100)
     {
         percent = 100;
     }
-    if (backlight != nullptr)
+    userBrightness = percent;
+    if (screenState == ScreenState::Awake)
     {
-        backlight->setBrightness(percent);
+        applyBrightness(percent);
+    }
+}
+
+void DisplayManager::wake()
+{
+    lastActivityMs = millis();
+    if (screenState != ScreenState::Awake)
+    {
+        screenState = ScreenState::Awake;
+        applyBrightness(userBrightness);
+        Serial.println("[DISPLAY] wake");
+    }
+}
+
+void DisplayManager::setSleepEnabled(bool enabled)
+{
+    sleepEnabled = enabled;
+    if (!enabled)
+    {
+        wake();
+    }
+}
+
+void DisplayManager::setSleepTimeouts(uint32_t dimMs, uint32_t offMs)
+{
+    dimAfterMs = dimMs;
+    offAfterMs = offMs;
+}
+
+void DisplayManager::sleepTimerCb(lv_timer_t* timer)
+{
+    (void)timer;
+    if (instance == nullptr || !instance->sleepEnabled)
+    {
+        return;
+    }
+
+    const uint32_t idle = millis() - instance->lastActivityMs;
+
+    if (instance->screenState == ScreenState::Awake && idle >= instance->dimAfterMs)
+    {
+        instance->screenState = ScreenState::Dimmed;
+        uint8_t dim = instance->userBrightness * 15 / 100;
+        if (dim < 5) dim = 5;
+        if (dim > instance->userBrightness) dim = instance->userBrightness;
+        instance->applyBrightness(dim);
+        Serial.println("[DISPLAY] dim");
+    }
+    else if (instance->screenState == ScreenState::Dimmed && idle >= instance->offAfterMs)
+    {
+        instance->screenState = ScreenState::Off;
+        instance->applyBrightness(0);
+        Serial.println("[DISPLAY] off");
     }
 }
