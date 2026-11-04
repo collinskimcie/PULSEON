@@ -117,6 +117,19 @@ lv_obj_t* createFacePanel(lv_obj_t* parent, uint8_t index)
     return panel;
 }
 
+static lv_obj_t* makeHiddenFullPanel(lv_obj_t* parent)
+{
+    lv_obj_t* panel = lv_obj_create(parent);
+    lv_obj_set_pos(panel, 0, 0);
+    lv_obj_set_size(panel, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    lv_obj_set_style_border_width(panel, 0, 0);
+    lv_obj_set_style_radius(panel, 0, 0);
+    lv_obj_set_style_pad_all(panel, 0, 0);
+    lv_obj_add_flag(panel, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_flag(panel, LV_OBJ_FLAG_HIDDEN);
+    return panel;
+}
+
 lv_obj_t* createWatchFaceFrame(lv_obj_t* parent, lv_color_t borderColor)
 {
     lv_obj_t* frame = createCard(
@@ -714,28 +727,14 @@ lv_obj_t* UIManager::createScreen(Screen screen)
             homeThemeIndex = uiThemeLoad();
             for (uint8_t kind = 0; kind < HOME_FACE_KINDS; ++kind)
             {
-                lv_obj_t* panel = lv_obj_create(root);
-                lv_obj_set_pos(panel, 0, 0);
-                lv_obj_set_size(panel, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-                lv_obj_set_style_border_width(panel, 0, 0);
-                lv_obj_set_style_radius(panel, 0, 0);
-                lv_obj_set_style_pad_all(panel, 0, 0);
-                lv_obj_add_flag(panel, LV_OBJ_FLAG_EVENT_BUBBLE);
-                lv_obj_add_flag(panel, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_t* panel = makeHiddenFullPanel(root);
                 homeFaces[6 + kind] = panel;
                 uiHomeBuildFace(panel, kind, homeColorsFor(homeThemeIndex));
             }
 
             for (uint8_t nk = 0; nk < NEW_FACE_COUNT; ++nk)
             {
-                lv_obj_t* np = lv_obj_create(root);
-                lv_obj_set_pos(np, 0, 0);
-                lv_obj_set_size(np, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-                lv_obj_set_style_border_width(np, 0, 0);
-                lv_obj_set_style_radius(np, 0, 0);
-                lv_obj_set_style_pad_all(np, 0, 0);
-                lv_obj_add_flag(np, LV_OBJ_FLAG_EVENT_BUBBLE);
-                lv_obj_add_flag(np, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_t* np = makeHiddenFullPanel(root);
                 homeFaces[9 + nk] = np;
                 uiNewBuildFace(np, nk, homeColorsFor(homeThemeIndex));
             }
