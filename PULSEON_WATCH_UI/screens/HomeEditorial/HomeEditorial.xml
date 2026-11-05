@@ -1,0 +1,45 @@
+<screen>
+	<view width="240" height="320" style_bg_color="0xECE6DA" style_pad_all="0" style_border_width="0">
+		<lv_label name="date" x="20" y="14" text="FRI 5 NOV" style_text_color="0x15130F" style_text_font="font_body" />
+		<lv_label name="link" x="-20" y="14" align="top_right" text="LINK" style_text_color="0x15130F" style_text_font="font_body" />
+		<lv_obj name="rule_top" x="20" y="36" width="200" height="1" style_bg_color="0x15130F" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h0_seg0" x="32" y="50" width="32" height="12" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h0_seg1" x="64" y="56" width="12" height="42" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h0_seg2" x="64" y="98" width="12" height="42" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h0_seg3" x="32" y="134" width="32" height="12" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h0_seg4" x="20" y="98" width="12" height="42" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h0_seg5" x="20" y="56" width="12" height="42" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h0_seg6" x="32" y="92" width="32" height="12" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" style_bg_opa="0%" />
+		<lv_obj name="h1_seg0" x="100" y="50" width="32" height="12" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h1_seg1" x="132" y="56" width="12" height="42" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h1_seg2" x="132" y="98" width="12" height="42" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h1_seg3" x="100" y="134" width="32" height="12" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h1_seg4" x="88" y="98" width="12" height="42" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" style_bg_opa="0%" />
+		<lv_obj name="h1_seg5" x="88" y="56" width="12" height="42" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="h1_seg6" x="100" y="92" width="32" height="12" style_bg_color="0x15130F" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="m0_seg0" x="32" y="156" width="32" height="12" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" style_bg_opa="0%" />
+		<lv_obj name="m0_seg1" x="64" y="162" width="12" height="42" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="m0_seg2" x="64" y="204" width="12" height="42" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="m0_seg3" x="32" y="240" width="32" height="12" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" style_bg_opa="0%" />
+		<lv_obj name="m0_seg4" x="20" y="204" width="12" height="42" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" style_bg_opa="0%" />
+		<lv_obj name="m0_seg5" x="20" y="162" width="12" height="42" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="m0_seg6" x="32" y="198" width="32" height="12" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="m1_seg0" x="100" y="156" width="32" height="12" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" style_bg_opa="0%" />
+		<lv_obj name="m1_seg1" x="132" y="162" width="12" height="42" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="m1_seg2" x="132" y="204" width="12" height="42" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="m1_seg3" x="100" y="240" width="32" height="12" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" style_bg_opa="0%" />
+		<lv_obj name="m1_seg4" x="88" y="204" width="12" height="42" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" style_bg_opa="0%" />
+		<lv_obj name="m1_seg5" x="88" y="162" width="12" height="42" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" style_bg_opa="0%" />
+		<lv_obj name="m1_seg6" x="100" y="198" width="32" height="12" style_bg_color="0xE5484D" style_radius="6" style_border_width="0" style_pad_all="0" style_bg_opa="0%" />
+		<lv_label name="wd" x="164" y="56" text="FRI" style_text_color="0x15130F" style_text_font="font_h5" />
+		<lv_label name="dd" x="164" y="80" text="5" style_text_color="0x15130F" style_text_font="font_h1" />
+		<lv_label name="mon" x="164" y="140" text="NOV" style_text_color="0xE5484D" style_text_font="font_h5" />
+		<lv_obj name="rule_bottom" x="20" y="262" width="200" height="1" style_bg_color="0x15130F" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_label name="hr_cap" x="20" y="268" text="HEART" style_text_color="0x15130F" style_text_font="font_body" />
+		<lv_label name="hr" x="20" y="286" text="78" style_text_color="0x15130F" style_text_font="font_h5" />
+		<lv_label name="steps_cap" x="90" y="268" text="STEPS" style_text_color="0x15130F" style_text_font="font_body" />
+		<lv_label name="steps" x="90" y="286" text="6842" style_text_color="0x15130F" style_text_font="font_h5" />
+		<lv_label name="bat_cap" x="160" y="268" text="PHONE" style_text_color="0x15130F" style_text_font="font_body" />
+		<lv_label name="bat" x="160" y="286" text="86%" style_text_color="0x15130F" style_text_font="font_h5" />
+	</view>
+</screen>

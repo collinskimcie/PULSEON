@@ -84,6 +84,11 @@ list(
   ${CMAKE_CURRENT_LIST_DIR}/PULSEON_WATCH_UI_gen.c
   ${CMAKE_CURRENT_LIST_DIR}/PULSEON_WATCH_UI.c
   ${CMAKE_CURRENT_LIST_DIR}/screens/Health/Health_gen.c
+  ${CMAKE_CURRENT_LIST_DIR}/screens/HomeAnalog/HomeAnalog_gen.c
+  ${CMAKE_CURRENT_LIST_DIR}/screens/HomeBento/HomeBento_gen.c
+  ${CMAKE_CURRENT_LIST_DIR}/screens/HomeEditorial/HomeEditorial_gen.c
+  ${CMAKE_CURRENT_LIST_DIR}/screens/HomeEmber/HomeEmber_gen.c
+  ${CMAKE_CURRENT_LIST_DIR}/screens/HomeWayfinder/HomeWayfinder_gen.c
   ${CMAKE_CURRENT_LIST_DIR}/screens/Music/Music_gen.c
   ${CMAKE_CURRENT_LIST_DIR}/screens/Notifications/Notifications_gen.c
   ${CMAKE_CURRENT_LIST_DIR}/screens/QuickControls/QuickControls_gen.c

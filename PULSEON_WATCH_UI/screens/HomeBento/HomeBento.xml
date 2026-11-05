@@ -1,0 +1,23 @@
+<screen>
+	<view width="240" height="320" style_bg_color="0x0E0E12" style_pad_all="0" style_border_width="0">
+		<lv_obj name="time_tile" x="8" y="8" width="224" height="96" style_bg_color="0xFF7A59" style_radius="20" style_border_width="0" style_pad_all="0" />
+		<lv_label name="date" x="20" y="16" text="FRI 5 NOV" style_text_color="0x101014" style_text_font="font_body" />
+		<lv_label name="time" x="20" y="38" text="09:41" style_text_color="0x101014" style_text_font="font_h1" />
+		<lv_obj name="hr_tile" x="8" y="112" width="108" height="70" style_bg_color="0xFFC857" style_radius="20" style_border_width="0" style_pad_all="0" />
+		<lv_label name="hr_cap" x="20" y="120" text="HEART" style_text_color="0x101014" style_text_font="font_body" />
+		<lv_label name="hr" x="20" y="138" text="78" style_text_color="0x101014" style_text_font="font_h4" />
+		<lv_obj name="steps_tile" x="124" y="112" width="108" height="70" style_bg_color="0x6FD3A6" style_radius="20" style_border_width="0" style_pad_all="0" />
+		<lv_label name="steps_cap" x="136" y="120" text="STEPS" style_text_color="0x101014" style_text_font="font_body" />
+		<lv_label name="steps" x="136" y="138" text="6842" style_text_color="0x101014" style_text_font="font_h4" />
+		<lv_obj name="bat_tile" x="8" y="190" width="108" height="56" style_bg_color="0x7AA2FF" style_radius="20" style_border_width="0" style_pad_all="0" />
+		<lv_label name="bat_cap" x="20" y="198" text="PHONE" style_text_color="0x101014" style_text_font="font_body" />
+		<lv_label name="bat" x="20" y="216" text="86%" style_text_color="0x101014" style_text_font="font_h5" />
+		<lv_obj name="o2_tile" x="124" y="190" width="108" height="56" style_bg_color="0xB7A680" style_radius="20" style_border_width="0" style_pad_all="0" />
+		<lv_label name="o2_cap" x="136" y="198" text="SPO2" style_text_color="0x101014" style_text_font="font_body" />
+		<lv_label name="o2" x="136" y="216" text="98%" style_text_color="0x101014" style_text_font="font_h5" />
+		<lv_obj name="info_tile" x="8" y="254" width="224" height="58" style_bg_color="0x1E1E26" style_radius="20" style_border_width="0" style_pad_all="0" />
+		<lv_label name="wx" x="20" y="264" text="Clear 24 C" style_text_color="0xFFFFFF" style_text_font="font_body" />
+		<lv_label name="alarm" x="20" y="284" text="06:30" style_text_color="0xB8B8C4" style_text_font="font_body" />
+		<lv_label name="alerts" x="-20" y="272" align="top_right" text="3" style_text_color="0xFFFFFF" style_text_font="font_h4" />
+	</view>
+</screen>

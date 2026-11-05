@@ -1,0 +1,123 @@
+<screen>
+	<styles>
+		<style name="wf_ind5" arc_width="5" arc_color="0xFF2A2A" />
+		<style name="wf_ind7" arc_width="7" arc_color="0xFF2A2A" />
+		<style name="wf_knob_off" bg_opa="0%" pad_all="0" />
+	</styles>
+	<view width="240" height="320" style_bg_color="0x050000" style_pad_all="0" style_border_width="0">
+		<lv_obj name="tl0" x="8" y="42" width="14" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr0" x="218" y="42" width="14" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl1" x="8" y="52" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr1" x="225" y="52" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl2" x="8" y="62" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr2" x="225" y="62" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl3" x="8" y="72" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr3" x="225" y="72" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl4" x="8" y="82" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr4" x="225" y="82" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl5" x="8" y="92" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr5" x="225" y="92" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl6" x="8" y="102" width="14" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr6" x="218" y="102" width="14" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl7" x="8" y="112" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr7" x="225" y="112" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl8" x="8" y="122" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr8" x="225" y="122" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl9" x="8" y="132" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr9" x="225" y="132" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl10" x="8" y="142" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr10" x="225" y="142" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl11" x="8" y="152" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr11" x="225" y="152" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl12" x="8" y="162" width="14" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr12" x="218" y="162" width="14" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl13" x="8" y="172" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr13" x="225" y="172" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl14" x="8" y="182" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr14" x="225" y="182" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl15" x="8" y="192" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr15" x="225" y="192" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl16" x="8" y="202" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr16" x="225" y="202" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl17" x="8" y="212" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr17" x="225" y="212" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl18" x="8" y="222" width="14" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr18" x="218" y="222" width="14" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl19" x="8" y="232" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr19" x="225" y="232" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl20" x="8" y="242" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr20" x="225" y="242" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl21" x="8" y="252" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr21" x="225" y="252" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl22" x="8" y="262" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr22" x="225" y="262" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tl23" x="8" y="272" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="tr23" x="225" y="272" width="7" height="2" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_arc name="hr_arc" x="34" y="30" width="56" height="56" rotation="0" bg_start_angle="135" bg_end_angle="45" value="40" style_arc_width="5" style_arc_color="0x4A0B0B">
+			<style name="wf_ind5" selector="indicator" />
+			<style name="wf_knob_off" selector="knob" />
+		</lv_arc>
+		<lv_label name="hr_val" x="34" y="45" width="56" text="78" style_text_color="0xFF2A2A" style_text_font="font_h5" style_text_align="center" />
+		<lv_label name="hr_sub" x="34" y="65" width="56" text="bpm" style_text_color="0xFF2A2A" style_text_font="font_body" style_text_align="center" />
+		<lv_arc name="o2_arc" x="92" y="30" width="56" height="56" rotation="0" bg_start_angle="135" bg_end_angle="45" value="80" style_arc_width="5" style_arc_color="0x4A0B0B">
+			<style name="wf_ind5" selector="indicator" />
+			<style name="wf_knob_off" selector="knob" />
+		</lv_arc>
+		<lv_label name="o2_val" x="92" y="45" width="56" text="98" style_text_color="0xFF2A2A" style_text_font="font_h5" style_text_align="center" />
+		<lv_label name="o2_sub" x="92" y="65" width="56" text="SpO2" style_text_color="0xFF2A2A" style_text_font="font_body" style_text_align="center" />
+		<lv_arc name="tmp_arc" x="150" y="30" width="56" height="56" rotation="0" bg_start_angle="135" bg_end_angle="45" value="0" style_arc_width="5" style_arc_color="0x4A0B0B">
+			<style name="wf_ind5" selector="indicator" />
+			<style name="wf_knob_off" selector="knob" />
+		</lv_arc>
+		<lv_label name="tmp_val" x="150" y="45" width="56" text="24" style_text_color="0xFF2A2A" style_text_font="font_h5" style_text_align="center" />
+		<lv_label name="tmp_sub" x="150" y="65" width="56" text="temp C" style_text_color="0xFF2A2A" style_text_font="font_body" style_text_align="center" />
+		<lv_label name="time" x="20" y="92" width="200" text="09:41" style_text_color="0xFF2A2A" style_text_font="font_h1" style_text_align="center" />
+		<lv_label name="date" x="20" y="150" width="200" text="Fri 5 Nov" style_text_color="0xFF2A2A" style_text_font="font_body" style_text_align="center" />
+		<lv_obj name="rule0" x="34" y="177" width="2" height="14" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule1" x="40" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule2" x="46" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule3" x="52" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule4" x="58" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule5" x="64" y="177" width="2" height="14" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule6" x="70" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule7" x="76" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule8" x="82" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule9" x="88" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule10" x="94" y="177" width="2" height="14" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule11" x="100" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule12" x="106" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule13" x="112" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule14" x="118" y="173" width="2" height="22" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule15" x="124" y="177" width="2" height="14" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule16" x="130" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule17" x="136" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule18" x="142" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule19" x="148" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule20" x="154" y="177" width="2" height="14" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule21" x="160" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule22" x="166" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule23" x="172" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule24" x="178" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule25" x="184" y="177" width="2" height="14" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule26" x="190" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule27" x="196" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_obj name="rule28" x="202" y="180" width="2" height="8" style_bg_color="0xFF2A2A" style_radius="0" style_border_width="0" style_pad_all="0" />
+		<lv_label name="dprev" x="27" y="204" width="50" text="Thu" style_text_color="0xFF2A2A" style_text_font="font_body" style_text_align="center" />
+		<lv_label name="dcur" x="90" y="201" width="60" text="Fri" style_text_color="0xFF2A2A" style_text_font="font_h5" style_text_align="center" />
+		<lv_label name="dnext" x="163" y="204" width="50" text="Sat" style_text_color="0xFF2A2A" style_text_font="font_body" style_text_align="center" />
+		<lv_arc name="step_arc" x="34" y="234" width="56" height="56" rotation="270" bg_start_angle="0" bg_end_angle="360" value="0" style_arc_width="7" style_arc_color="0x4A0B0B">
+			<style name="wf_ind7" selector="indicator" />
+			<style name="wf_knob_off" selector="knob" />
+		</lv_arc>
+		<lv_label name="step_lbl" x="42" y="254" width="40" text="6.8k" style_text_color="0xFF2A2A" style_text_font="font_body" style_text_align="center" />
+		<lv_obj name="alarm_disc" x="92" y="234" width="56" height="56" style_bg_color="0x2A0606" style_radius="28" style_border_width="0" style_pad_all="0" />
+		<lv_label name="alarm_cap" x="92" y="244" width="56" text="ALARM" style_text_color="0xFF2A2A" style_text_font="font_body" style_text_align="center" />
+		<lv_label name="alarm" x="92" y="264" width="56" text="06:30" style_text_color="0xFF2A2A" style_text_font="font_body" style_text_align="center" />
+		<lv_arc name="bat_arc" x="150" y="234" width="56" height="56" rotation="0" bg_start_angle="135" bg_end_angle="45" value="0" style_arc_width="5" style_arc_color="0x4A0B0B">
+			<style name="wf_ind5" selector="indicator" />
+			<style name="wf_knob_off" selector="knob" />
+		</lv_arc>
+		<lv_label name="bat_val" x="150" y="249" width="56" text="86" style_text_color="0xFF2A2A" style_text_font="font_h5" style_text_align="center" />
+		<lv_label name="bat_sub" x="150" y="269" width="56" text="bat" style_text_color="0xFF2A2A" style_text_font="font_body" style_text_align="center" />
+	</view>
+</screen>

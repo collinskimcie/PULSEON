@@ -48,7 +48,7 @@ lv_obj_t * WatchHome_create(void)
         lv_obj_t * lv_label_0 = lv_label_create(lv_obj_0);
         lv_obj_set_x(lv_label_0, 12);
         lv_obj_set_y(lv_label_0, 8);
-        lv_label_set_text(lv_label_0, "MON 07 OCT");
+        lv_label_set_text(lv_label_0, "FRI 16 OCT");
         lv_obj_set_style_text_color(lv_label_0, COLOR_DARK_TEXT, 0);
         lv_obj_set_style_text_font(lv_label_0, font_h5, 0);
 
@@ -71,7 +71,7 @@ lv_obj_t * WatchHome_create(void)
         lv_obj_set_y(lv_label_3, 52);
         lv_obj_set_width(lv_label_3, 320);
         lv_obj_set_height(lv_label_3, 55);
-        lv_label_set_text(lv_label_3, "12:48");
+        lv_label_set_text(lv_label_3, "09:40");
         lv_obj_set_style_text_color(lv_label_3, COLOR_DARK_TEXT, 0);
         lv_obj_set_style_text_font(lv_label_3, font_h1, 0);
         lv_obj_set_style_text_align(lv_label_3, LV_TEXT_ALIGN_CENTER, 0);
@@ -81,7 +81,7 @@ lv_obj_t * WatchHome_create(void)
         lv_obj_set_y(lv_label_4, 108);
         lv_obj_set_width(lv_label_4, 320);
         lv_obj_set_height(lv_label_4, 28);
-        lv_label_set_text(lv_label_4, "PM");
+        lv_label_set_text(lv_label_4, "AM");
         lv_obj_set_style_text_color(lv_label_4, COLOR_ACCENT, 0);
         lv_obj_set_style_text_font(lv_label_4, font_h5, 0);
         lv_obj_set_style_text_align(lv_label_4, LV_TEXT_ALIGN_CENTER, 0);
