@@ -35,6 +35,7 @@ private:
         PAGE_CAMERA,
         PAGE_NAV,
         PAGE_ALARM_EDIT,
+        PAGE_TODAY,
         PAGE_COUNT
     };
 
@@ -90,6 +91,9 @@ private:
     void buildWeather();
     void buildAlarms();
     void buildAlarmEdit();
+    void buildToday();
+    void refreshToday();
+    static void todayTileOpen(void* user);
     void refreshAlarmEdit();
     void openAlarmEdit(uint8_t index);
     static void alarmRowClicked(lv_event_t* event);
@@ -134,6 +138,11 @@ private:
     lv_obj_t* editMinLbl = nullptr;
     lv_obj_t* editRepeatLbl = nullptr;
     lv_obj_t* editEnableLbl = nullptr;
+    lv_obj_t* todayWeather = nullptr;
+    lv_obj_t* todayWeatherSub = nullptr;
+    lv_obj_t* todaySteps = nullptr;
+    lv_obj_t* todayAlerts = nullptr;
+    lv_obj_t* todayAlarm = nullptr;
     lv_obj_t* findStatus = nullptr;
     lv_obj_t* findButtonLabel = nullptr;
     lv_obj_t* cameraStatus = nullptr;

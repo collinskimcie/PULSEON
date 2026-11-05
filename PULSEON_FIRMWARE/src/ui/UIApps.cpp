@@ -233,6 +233,8 @@ void UIApps::begin(AppStateManager* state, ChronosManager* chronosManager, UIOve
     buildWeather();
     buildAlarms();
     buildAlarmEdit();
+    buildToday();
+    addTile("Today", todayTileOpen, this);
     buildFind();
     buildCamera();
     buildNav();
@@ -417,6 +419,7 @@ void UIApps::showPage(Page page)
     if (page == PAGE_WEATHER) refreshWeather();
     if (page == PAGE_ALARMS) refreshAlarms();
     if (page == PAGE_ALARM_EDIT) refreshAlarmEdit();
+    if (page == PAGE_TODAY) refreshToday();
     if (page == PAGE_NAV) refreshNav();
     if (page == PAGE_FIND || page == PAGE_CAMERA)
     {
@@ -722,6 +725,106 @@ void UIApps::refreshAlarmEdit()
     if (editEnableLbl != nullptr)
     {
         lv_label_set_text(editEnableLbl, editEnabled ? "On" : "Off");
+    }
+}
+
+void UIApps::todayTileOpen(void* user)
+{
+    UIApps* self = static_cast<UIApps*>(user);
+    if (self != nullptr)
+    {
+        self->showPage(PAGE_TODAY);
+    }
+}
+
+void UIApps::buildToday()
+{
+    lv_obj_t* root = makeRoot(PAGE_TODAY, "TODAY");
+
+    makePanel(root, 8, 40, 224, 72, OV_CARD, 16);
+    todayWeather = makeLabel(root, "--", 18, 46, 90, 56, font_h2, OV_ACCENT, LV_TEXT_ALIGN_LEFT);
+    todayWeatherSub = makeLabel(root, "", 100, 52, 124, 48, font_body, OV_MUTED,
+                                LV_TEXT_ALIGN_RIGHT, LV_LABEL_LONG_WRAP);
+
+    makePanel(root, 8, 120, 108, 64, OV_CARD, 16);
+    makeLabel(root, "STEPS", 16, 126, 92, 20, font_body, OV_MUTED);
+    todaySteps = makeLabel(root, "0", 16, 148, 92, 32, font_h4, OV_TEXT);
+
+    makePanel(root, 124, 120, 108, 64, OV_CARD, 16);
+    makeLabel(root, "ALERTS", 132, 126, 92, 20, font_body, OV_MUTED);
+    todayAlerts = makeLabel(root, "0", 132, 148, 92, 32, font_h4, OV_TEXT);
+
+    makePanel(root, 8, 192, 224, 62, OV_CARD, 16);
+    makeLabel(root, "NEXT ALARM", 18, 197, 204, 20, font_body, OV_MUTED);
+    todayAlarm = makeLabel(root, "None", 18, 218, 204, 30, font_h4, OV_TEXT);
+
+    addAction(root, "Back", 12, 266, 216, 50, OV_CARD_ALT, OV_TEXT, ACT_BACK);
+}
+
+void UIApps::refreshToday()
+{
+    if (appState == nullptr || todayWeather == nullptr)
+    {
+        return;
+    }
+    const PulseonAppState& st = appState->getState();
+    char buf[64];
+
+    if (st.weatherAvailable)
+    {
+        snprintf(buf, sizeof(buf), "%d", st.weatherTemperature);
+        lv_label_set_text(todayWeather, buf);
+        snprintf(buf, sizeof(buf), "%s\nH %d  L %d", st.weatherCity.c_str(), st.weatherHigh, st.weatherLow);
+        lv_label_set_text(todayWeatherSub, buf);
+    }
+    else
+    {
+        lv_label_set_text(todayWeather, "--");
+        lv_label_set_text(todayWeatherSub, "No weather yet");
+    }
+
+    snprintf(buf, sizeof(buf), "%u", static_cast<unsigned>(st.steps));
+    lv_label_set_text(todaySteps, buf);
+    snprintf(buf, sizeof(buf), "%u", static_cast<unsigned>(st.notificationStored));
+    lv_label_set_text(todayAlerts, buf);
+
+    int best = -1;
+    int bestDelta = 24 * 60 + 1;
+    const time_t nowT = time(nullptr);
+    struct tm tmNow;
+    const bool haveClock = nowT > 1700000000 && localtime_r(&nowT, &tmNow) != nullptr;
+    const int nowMin = haveClock ? tmNow.tm_hour * 60 + tmNow.tm_min : 0;
+    for (uint8_t i = 0; i < PULSEON_MAX_ALARMS; ++i)
+    {
+        const PulseonAlarm& a = st.alarms[i];
+        if (!a.enabled)
+        {
+            continue;
+        }
+        const int delta = ((a.hour * 60 + a.minute) - nowMin + 1440) % 1440;
+        if (delta < bestDelta)
+        {
+            bestDelta = delta;
+            best = i;
+        }
+    }
+    if (best < 0)
+    {
+        lv_label_set_text(todayAlarm, "None set");
+    }
+    else
+    {
+        char t[16];
+        formatTime(st.alarms[best].hour, st.alarms[best].minute, st.is24Hour, t, sizeof(t));
+        if (haveClock)
+        {
+            snprintf(buf, sizeof(buf), "%s  in %dh %02dm", t, bestDelta / 60, bestDelta % 60);
+        }
+        else
+        {
+            snprintf(buf, sizeof(buf), "%s", t);
+        }
+        lv_label_set_text(todayAlarm, buf);
     }
 }
 

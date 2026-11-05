@@ -1,0 +1,26 @@
+name: PULSEON firmware build
+
+on:
+  push:
+    paths: ['PULSEON_FIRMWARE/**', 'PULSEON_WATCH_UI/**', '.github/workflows/pulseon-build.yml']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: PULSEON_FIRMWARE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('PULSEON_FIRMWARE/platformio.ini') }}
+      - run: pip install platformio
+      - run: cp include/wifi_secrets.h.example include/wifi_secrets.h
+      - run: pio run -e esp32-s3-dev
