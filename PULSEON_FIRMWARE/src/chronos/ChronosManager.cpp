@@ -127,6 +127,24 @@ void ChronosManager::pollAlarms()
     }
 }
 
+void ChronosManager::editAlarm(uint8_t index, uint8_t hour, uint8_t minute, uint8_t repeat, bool enabled)
+{
+    if (index >= PULSEON_MAX_ALARMS)
+    {
+        return;
+    }
+    Alarm a = watch.getAlarm(index);
+    a.hour = hour;
+    a.minute = minute;
+    a.repeat = repeat;
+    a.enabled = enabled;
+    watch.setAlarm(index, a);
+    Serial.printf("[CHRONOS] Alarm %u edited on watch: %02u:%02u repeat=0x%02X enabled=%u\n",
+                  static_cast<unsigned>(index), static_cast<unsigned>(hour), static_cast<unsigned>(minute),
+                  static_cast<unsigned>(repeat), enabled ? 1u : 0u);
+    updateAlarms();
+}
+
 void ChronosManager::dismissAlarm()
 {
     snoozeAlarmIndex = -1;

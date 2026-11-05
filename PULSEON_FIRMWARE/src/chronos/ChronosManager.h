@@ -37,6 +37,7 @@ public:
     void clearNotifications();
 
     void dismissAlarm();
+    void editAlarm(uint8_t index, uint8_t hour, uint8_t minute, uint8_t repeat, bool enabled);
     void snoozeAlarm(uint8_t minutes = 5);
 
     int getContactCount();

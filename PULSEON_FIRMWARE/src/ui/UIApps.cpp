@@ -232,6 +232,7 @@ void UIApps::begin(AppStateManager* state, ChronosManager* chronosManager, UIOve
     buildMusic();
     buildWeather();
     buildAlarms();
+    buildAlarmEdit();
     buildFind();
     buildCamera();
     buildNav();
@@ -348,8 +349,9 @@ void UIApps::buildWeather()
 void UIApps::buildAlarms()
 {
     lv_obj_t* root = makeRoot(PAGE_ALARMS, "ALARMS");
-    alarmList = makeList(root, 8, 44, 224, 216);
-    addAction(root, "Back", 12, 266, 216, 50, OV_CARD_ALT, OV_TEXT, ACT_BACK);
+    alarmList = makeList(root, 8, 44, 224, 214);
+    addAction(root, "New", 12, 266, 104, 50, OV_ACCENT_DARK, OV_ACCENT, ACT_ALARM_NEW);
+    addAction(root, "Back", 124, 266, 104, 50, OV_CARD_ALT, OV_TEXT, ACT_BACK);
 }
 
 void UIApps::buildFind()
@@ -414,6 +416,7 @@ void UIApps::showPage(Page page)
 
     if (page == PAGE_WEATHER) refreshWeather();
     if (page == PAGE_ALARMS) refreshAlarms();
+    if (page == PAGE_ALARM_EDIT) refreshAlarmEdit();
     if (page == PAGE_NAV) refreshNav();
     if (page == PAGE_FIND || page == PAGE_CAMERA)
     {
@@ -457,6 +460,41 @@ void UIApps::handle(uint8_t id)
         case ACT_OPEN_MUSIC:   showPage(PAGE_MUSIC); break;
         case ACT_OPEN_WEATHER: showPage(PAGE_WEATHER); break;
         case ACT_OPEN_ALARMS:  showPage(PAGE_ALARMS); break;
+        case ACT_ALARM_NEW:
+        {
+            if (appState == nullptr) break;
+            const PulseonAppState& st = appState->getState();
+            for (uint8_t i = 0; i < PULSEON_MAX_ALARMS; ++i)
+            {
+                if (!st.alarms[i].enabled)
+                {
+                    openAlarmEdit(i);
+                    editHour = 7;
+                    editMinute = 0;
+                    editRepeat = 0x80;
+                    editEnabled = true;
+                    refreshAlarmEdit();
+                    break;
+                }
+            }
+            break;
+        }
+        case ACT_ALARM_HOUR_DOWN:  editHour = (editHour + 23) % 24; refreshAlarmEdit(); break;
+        case ACT_ALARM_HOUR_UP:    editHour = (editHour + 1) % 24; refreshAlarmEdit(); break;
+        case ACT_ALARM_MIN_DOWN:   editMinute = (editMinute + 59) % 60; refreshAlarmEdit(); break;
+        case ACT_ALARM_MIN_UP:     editMinute = (editMinute + 1) % 60; refreshAlarmEdit(); break;
+        case ACT_ALARM_MIN_DOWN5:  editMinute = (editMinute + 55) % 60; refreshAlarmEdit(); break;
+        case ACT_ALARM_MIN_UP5:    editMinute = (editMinute + 5) % 60; refreshAlarmEdit(); break;
+        case ACT_ALARM_REPEAT:     editRepeat = (editRepeat == 0x80) ? 0x7F : 0x80; refreshAlarmEdit(); break;
+        case ACT_ALARM_ENABLE:     editEnabled = !editEnabled; refreshAlarmEdit(); break;
+        case ACT_ALARM_SAVE:
+            if (chronos != nullptr)
+            {
+                chronos->editAlarm(editIndex, editHour, editMinute, editRepeat, editEnabled);
+            }
+            showPage(PAGE_ALARMS);
+            break;
+        case ACT_ALARM_CANCEL:     showPage(PAGE_ALARMS); break;
         case ACT_OPEN_FIND:    showPage(PAGE_FIND); break;
         case ACT_OPEN_CAMERA:  showPage(PAGE_CAMERA); break;
         case ACT_OPEN_NAV:     showPage(PAGE_NAV); break;
@@ -602,6 +640,9 @@ void UIApps::refreshAlarms()
         formatTime(a.hour, a.minute, st.is24Hour, buf, sizeof(buf));
 
         lv_obj_t* card = makePanel(alarmList, 0, 0, 224, 48, OV_CARD, 14);
+        lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
+        alarmRows[i] = AlarmRow{this, i};
+        lv_obj_add_event_cb(card, alarmRowClicked, LV_EVENT_CLICKED, &alarmRows[i]);
         makeLabel(card, buf, 14, 10, 150, 28, font_h4, OV_TEXT);
         makeLabel(card, "ON", 168, 14, 46, 22, font_h5, OV_GOOD, LV_TEXT_ALIGN_RIGHT);
         ++shown;
@@ -610,6 +651,77 @@ void UIApps::refreshAlarms()
     if (shown == 0)
     {
         makeLabel(alarmList, "No alarms set", 0, 0, 224, 24, font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER);
+    }
+}
+
+void UIApps::alarmRowClicked(lv_event_t* event)
+{
+    AlarmRow* row = static_cast<AlarmRow*>(lv_event_get_user_data(event));
+    if (row != nullptr && row->self != nullptr)
+    {
+        row->self->openAlarmEdit(row->index);
+    }
+}
+
+void UIApps::openAlarmEdit(uint8_t index)
+{
+    if (appState == nullptr || index >= PULSEON_MAX_ALARMS)
+    {
+        return;
+    }
+    const PulseonAlarm& a = appState->getState().alarms[index];
+    editIndex = index;
+    editHour = a.hour % 24;
+    editMinute = a.minute % 60;
+    editRepeat = a.repeat;
+    editEnabled = a.enabled;
+    showPage(PAGE_ALARM_EDIT);
+}
+
+void UIApps::buildAlarmEdit()
+{
+    lv_obj_t* root = makeRoot(PAGE_ALARM_EDIT, "EDIT ALARM");
+
+    editHourLbl = makeLabel(root, "07", 12, 46, 104, 56, font_h2, OV_TEXT, LV_TEXT_ALIGN_CENTER);
+    editMinLbl = makeLabel(root, "00", 124, 46, 104, 56, font_h2, OV_TEXT, LV_TEXT_ALIGN_CENTER);
+
+    addAction(root, "-", 12, 104, 50, 44, OV_CARD, OV_TEXT, ACT_ALARM_HOUR_DOWN);
+    addAction(root, "+", 66, 104, 50, 44, OV_CARD, OV_TEXT, ACT_ALARM_HOUR_UP);
+    addAction(root, "-", 124, 104, 50, 44, OV_CARD, OV_TEXT, ACT_ALARM_MIN_DOWN);
+    addAction(root, "+", 178, 104, 50, 44, OV_CARD, OV_TEXT, ACT_ALARM_MIN_UP);
+    addAction(root, "-5", 124, 152, 50, 38, OV_CARD_ALT, OV_TEXT, ACT_ALARM_MIN_DOWN5);
+    addAction(root, "+5", 178, 152, 50, 38, OV_CARD_ALT, OV_TEXT, ACT_ALARM_MIN_UP5);
+
+    lv_obj_t* rep = addAction(root, "Once", 12, 196, 132, 58, OV_CARD, OV_TEXT, ACT_ALARM_REPEAT);
+    editRepeatLbl = lv_obj_get_child(rep, 0);
+    lv_obj_t* en = addAction(root, "On", 150, 196, 78, 58, OV_ACCENT_DARK, OV_ACCENT, ACT_ALARM_ENABLE);
+    editEnableLbl = lv_obj_get_child(en, 0);
+
+    addAction(root, "Cancel", 12, 266, 104, 50, OV_CARD_ALT, OV_TEXT, ACT_ALARM_CANCEL);
+    addAction(root, "Save", 124, 266, 104, 50, OV_ACCENT_DARK, OV_ACCENT, ACT_ALARM_SAVE);
+}
+
+void UIApps::refreshAlarmEdit()
+{
+    char buf[8];
+    if (editHourLbl != nullptr)
+    {
+        snprintf(buf, sizeof(buf), "%02u", static_cast<unsigned>(editHour));
+        lv_label_set_text(editHourLbl, buf);
+    }
+    if (editMinLbl != nullptr)
+    {
+        snprintf(buf, sizeof(buf), "%02u", static_cast<unsigned>(editMinute));
+        lv_label_set_text(editMinLbl, buf);
+    }
+    if (editRepeatLbl != nullptr)
+    {
+        lv_label_set_text(editRepeatLbl,
+                          editRepeat == 0x80 ? "Once" : (editRepeat == 0x7F ? "Daily" : "Custom"));
+    }
+    if (editEnableLbl != nullptr)
+    {
+        lv_label_set_text(editEnableLbl, editEnabled ? "On" : "Off");
     }
 }
 

@@ -34,6 +34,7 @@ private:
         PAGE_FIND,
         PAGE_CAMERA,
         PAGE_NAV,
+        PAGE_ALARM_EDIT,
         PAGE_COUNT
     };
 
@@ -57,6 +58,17 @@ private:
         ACT_VOL_UP,
         ACT_FIND_TOGGLE,
         ACT_CAMERA_SHOOT,
+        ACT_ALARM_NEW,
+        ACT_ALARM_HOUR_DOWN,
+        ACT_ALARM_HOUR_UP,
+        ACT_ALARM_MIN_DOWN,
+        ACT_ALARM_MIN_UP,
+        ACT_ALARM_MIN_DOWN5,
+        ACT_ALARM_MIN_UP5,
+        ACT_ALARM_REPEAT,
+        ACT_ALARM_ENABLE,
+        ACT_ALARM_SAVE,
+        ACT_ALARM_CANCEL,
         ACT_COUNT
     };
 
@@ -77,6 +89,10 @@ private:
     void buildMusic();
     void buildWeather();
     void buildAlarms();
+    void buildAlarmEdit();
+    void refreshAlarmEdit();
+    void openAlarmEdit(uint8_t index);
+    static void alarmRowClicked(lv_event_t* event);
     void buildFind();
     void buildCamera();
     void buildNav();
@@ -102,6 +118,22 @@ private:
     lv_obj_t* weatherRange = nullptr;
     lv_obj_t* weatherList = nullptr;
     lv_obj_t* alarmList = nullptr;
+
+    struct AlarmRow
+    {
+        UIApps* self;
+        uint8_t index;
+    };
+    AlarmRow alarmRows[PULSEON_MAX_ALARMS] = {};
+    uint8_t editIndex = 0;
+    uint8_t editHour = 7;
+    uint8_t editMinute = 0;
+    uint8_t editRepeat = 0x80;
+    bool editEnabled = true;
+    lv_obj_t* editHourLbl = nullptr;
+    lv_obj_t* editMinLbl = nullptr;
+    lv_obj_t* editRepeatLbl = nullptr;
+    lv_obj_t* editEnableLbl = nullptr;
     lv_obj_t* findStatus = nullptr;
     lv_obj_t* findButtonLabel = nullptr;
     lv_obj_t* cameraStatus = nullptr;
