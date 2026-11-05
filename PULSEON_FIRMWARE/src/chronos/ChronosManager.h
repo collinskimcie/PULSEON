@@ -97,6 +97,8 @@ private:
     void updateWeather();
     void updateNavigation();
     void updateAlarms();
+    void loadAlarmOverrides();
+    void saveAlarmOverride(uint8_t index);
     void updateQr();
 
     ChronosESP32 watch;
@@ -119,5 +121,15 @@ private:
     bool alarmPrimed = false;
     bool alarmWasActive[PULSEON_MAX_ALARMS] = {};
     int8_t snoozeAlarmIndex = -1;
+
+    struct AlarmOverride
+    {
+        bool set = false;
+        uint8_t hour = 0;
+        uint8_t minute = 0;
+        uint8_t repeat = 0;
+        bool enabled = false;
+    };
+    AlarmOverride alarmOverride[PULSEON_MAX_ALARMS] = {};
     uint32_t snoozeUntilMs = 0;
 };

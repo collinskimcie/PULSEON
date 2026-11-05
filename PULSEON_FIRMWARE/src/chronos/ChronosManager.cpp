@@ -1,3 +1,4 @@
+#include <Preferences.h>
 #include "ChronosManager.h"
 
 #include <string.h>
@@ -38,6 +39,7 @@ void ChronosManager::begin()
 
     watch.begin();
 
+    loadAlarmOverrides();
     Serial.println("[CHRONOS] Started");
     Serial.println("[CHRONOS] Bluetooth name: PULSEON");
 }
@@ -127,6 +129,60 @@ void ChronosManager::pollAlarms()
     }
 }
 
+void ChronosManager::loadAlarmOverrides()
+{
+    Preferences p;
+    if (!p.begin("pulseon_alm", true))
+    {
+        return;
+    }
+    for (uint8_t i = 0; i < PULSEON_MAX_ALARMS; ++i)
+    {
+        char key[8];
+        snprintf(key, sizeof(key), "a%u", static_cast<unsigned>(i));
+        uint8_t buf[5] = {};
+        if (p.getBytes(key, buf, sizeof(buf)) == sizeof(buf) && buf[0] == 1)
+        {
+            alarmOverride[i].set = true;
+            alarmOverride[i].hour = buf[1] % 24;
+            alarmOverride[i].minute = buf[2] % 60;
+            alarmOverride[i].repeat = buf[3];
+            alarmOverride[i].enabled = buf[4] != 0;
+            Alarm a = watch.getAlarm(i);
+            a.hour = alarmOverride[i].hour;
+            a.minute = alarmOverride[i].minute;
+            a.repeat = alarmOverride[i].repeat;
+            a.enabled = alarmOverride[i].enabled;
+            watch.setAlarm(i, a);
+        }
+    }
+    p.end();
+    if (appState != nullptr)
+    {
+        updateAlarms();
+    }
+}
+
+void ChronosManager::saveAlarmOverride(uint8_t index)
+{
+    if (index >= PULSEON_MAX_ALARMS)
+    {
+        return;
+    }
+    Preferences p;
+    if (!p.begin("pulseon_alm", false))
+    {
+        return;
+    }
+    char key[8];
+    snprintf(key, sizeof(key), "a%u", static_cast<unsigned>(index));
+    const AlarmOverride& o = alarmOverride[index];
+    const uint8_t buf[5] = {static_cast<uint8_t>(o.set ? 1 : 0), o.hour, o.minute, o.repeat,
+                            static_cast<uint8_t>(o.enabled ? 1 : 0)};
+    p.putBytes(key, buf, sizeof(buf));
+    p.end();
+}
+
 void ChronosManager::editAlarm(uint8_t index, uint8_t hour, uint8_t minute, uint8_t repeat, bool enabled)
 {
     if (index >= PULSEON_MAX_ALARMS)
@@ -139,6 +195,12 @@ void ChronosManager::editAlarm(uint8_t index, uint8_t hour, uint8_t minute, uint
     a.repeat = repeat;
     a.enabled = enabled;
     watch.setAlarm(index, a);
+    alarmOverride[index].set = true;
+    alarmOverride[index].hour = hour;
+    alarmOverride[index].minute = minute;
+    alarmOverride[index].repeat = repeat;
+    alarmOverride[index].enabled = enabled;
+    saveAlarmOverride(index);
     Serial.printf("[CHRONOS] Alarm %u edited on watch: %02u:%02u repeat=0x%02X enabled=%u\n",
                   static_cast<unsigned>(index), static_cast<unsigned>(hour), static_cast<unsigned>(minute),
                   static_cast<unsigned>(repeat), enabled ? 1u : 0u);
@@ -250,6 +312,20 @@ void ChronosManager::updateAlarms()
     if (appState == nullptr)
     {
         return;
+    }
+
+    // Alarms edited on the watch win over whatever the phone just synced.
+    for (uint8_t i = 0; i < PULSEON_MAX_ALARMS; ++i)
+    {
+        if (alarmOverride[i].set)
+        {
+            Alarm o = watch.getAlarm(i);
+            o.hour = alarmOverride[i].hour;
+            o.minute = alarmOverride[i].minute;
+            o.repeat = alarmOverride[i].repeat;
+            o.enabled = alarmOverride[i].enabled;
+            watch.setAlarm(i, o);
+        }
     }
 
     PulseonAlarm alarms[PULSEON_MAX_ALARMS];
