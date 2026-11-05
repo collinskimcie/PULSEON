@@ -17,6 +17,8 @@ public:
     enum class ScreenState : uint8_t { Awake, Dimmed, Off };
 
     void wake();
+    static void holdAwake(bool hold);   // keep screen on (call/alarm/tools)
+    static void wakeNow();              // wake from an event
     void setSleepEnabled(bool enabled);
     void setSleepTimeouts(uint32_t dimMs, uint32_t offMs);
     ScreenState getScreenState() const { return screenState; }
@@ -56,4 +58,5 @@ private:
     uint32_t offAfterMs = 30000;
     bool sleepEnabled = true;
     bool swallowTouch = false;
+    bool holdAwakeFlag = false;
 };

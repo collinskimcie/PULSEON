@@ -1,3 +1,4 @@
+#include "../display/DisplayManager.h"
 #include "UISystem.h"
 #include "UIUtils.h"
 
@@ -765,6 +766,7 @@ void UISystem::poll()
     if (event)
     {
         lv_display_trigger_activity(nullptr);
+        DisplayManager::wakeNow();
     }
 
     // The phone's 12/24-hour choice wins and is remembered.
@@ -782,6 +784,7 @@ void UISystem::poll()
     const uint16_t limit = TIMEOUT_SECONDS[timeoutIdx];
     const uint32_t idle = lv_display_get_inactive_time(nullptr);
     const bool keepAwake = st.callActive || st.alarmRinging >= 0 || uiUtilsKeepAwake();
+    DisplayManager::holdAwake(keepAwake);
     if (!keepAwake && limit > 0 && idle >= static_cast<uint32_t>(limit) * 1000UL)
     {
         if (!dimmed)

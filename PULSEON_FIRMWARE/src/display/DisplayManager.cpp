@@ -347,11 +347,37 @@ void DisplayManager::setSleepTimeouts(uint32_t dimMs, uint32_t offMs)
     offAfterMs = offMs;
 }
 
+void DisplayManager::holdAwake(bool hold)
+{
+    if (instance != nullptr)
+    {
+        instance->holdAwakeFlag = hold;
+    }
+}
+
+void DisplayManager::wakeNow()
+{
+    if (instance != nullptr)
+    {
+        instance->wake();
+    }
+}
+
 void DisplayManager::sleepTimerCb(lv_timer_t* timer)
 {
     (void)timer;
     if (instance == nullptr || !instance->sleepEnabled)
     {
+        return;
+    }
+
+    if (instance->holdAwakeFlag)
+    {
+        if (instance->screenState != ScreenState::Awake)
+        {
+            instance->wake();
+        }
+        instance->lastActivityMs = millis();
         return;
     }
 
