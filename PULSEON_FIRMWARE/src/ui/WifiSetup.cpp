@@ -176,6 +176,9 @@ void handleRedirect()
     server->send(302, "text/plain", "");
 }
 
+bool gScanPending = false;
+uint32_t gRetryMs = 30000;
+
 void beginCandidate()
 {
     if (candIdx >= candCount)
@@ -212,7 +215,9 @@ void wifiConnectBegin()
     }
 
     candIdx = 0;
-    beginCandidate();
+    // Scan first; wifiScanPoll() joins only networks that are in range.
+    gScanPending = true;
+    WiFi.scanNetworks(true);
 }
 
 bool wifiConnectAdvance()
@@ -289,4 +294,74 @@ void wifiSetupStop()
 const char* wifiSetupHelp()
 {
     return "On your phone join Wi-Fi PULSEON-Setup, password pulseon1, then open 192.168.4.1";
+}
+
+// 0 = scan still running, 1 = joining / joined, -1 = no saved network in range
+int8_t wifiScanPoll()
+{
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        gScanPending = false;
+        gRetryMs = 30000;
+        return 1;
+    }
+    if (!gScanPending)
+    {
+        return 1;
+    }
+
+    const int n = WiFi.scanComplete();
+    if (n == WIFI_SCAN_RUNNING)
+    {
+        return 0;
+    }
+    gScanPending = false;
+
+    if (n >= 0)
+    {
+        uint8_t kept = 0;
+        for (uint8_t i = 0; i < candCount; ++i)
+        {
+            bool seen = false;
+            for (int j = 0; j < n && !seen; ++j)
+            {
+                seen = (WiFi.SSID(j) == String(cand[i].ssid));
+            }
+            if (seen)
+            {
+                cand[kept++] = cand[i];
+            }
+        }
+        Serial.printf("[WIFI] scan: %d networks, %u saved in range\n", n, static_cast<unsigned>(kept));
+        candCount = kept;
+        WiFi.scanDelete();
+    }
+    else
+    {
+        Serial.println("[WIFI] scan failed, trying all saved networks");
+    }
+
+    if (candCount == 0)
+    {
+        wifiBackoffGrow();
+        return -1;
+    }
+    candIdx = 0;
+    beginCandidate();
+    return 1;
+}
+
+uint32_t wifiRetryDelayMs()
+{
+    return gRetryMs;
+}
+
+void wifiBackoffGrow()
+{
+    gRetryMs = (gRetryMs * 2 > 300000) ? 300000 : gRetryMs * 2;
+}
+
+void wifiBackoffReset()
+{
+    gRetryMs = 30000;
 }

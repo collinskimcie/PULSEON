@@ -1175,7 +1175,7 @@ static void wifiKeepLoop()
         {
             return; // let boot and Chronos settle first
         }
-        if (keepAtMs != 0 && now - keepAtMs < 60000)
+        if (keepAtMs != 0 && now - keepAtMs < wifiRetryDelayMs())
         {
             return;
         }
@@ -1186,6 +1186,23 @@ static void wifiKeepLoop()
         keepSinceMs = now;
         keepAtMs = now;
         Serial.println("[WIFI] keep-alive: joining");
+        return;
+    }
+
+    const int8_t scan = wifiScanPoll();
+    if (scan == 0)
+    {
+        keepSinceMs = now; // scanning does not count toward the join timeout
+        return;
+    }
+    if (scan < 0)
+    {
+        WiFi.disconnect(true);
+        WiFi.mode(WIFI_OFF);
+        keepStarted = false;
+        keepAtMs = now;
+        Serial.printf("[WIFI] keep-alive: no saved network in range, next scan in %u s\n",
+                      static_cast<unsigned>(wifiRetryDelayMs() / 1000));
         return;
     }
 
@@ -1220,7 +1237,9 @@ static void wifiKeepLoop()
             WiFi.mode(WIFI_OFF);
             keepStarted = false;
             keepAtMs = now;
-            Serial.println("[WIFI] keep-alive: no network, retrying in 60 s");
+            wifiBackoffGrow();
+            Serial.printf("[WIFI] keep-alive: join failed, retrying in %u s\n",
+                          static_cast<unsigned>(wifiRetryDelayMs() / 1000));
         }
     }
 }
