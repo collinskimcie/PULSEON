@@ -1,3 +1,4 @@
+#include <esp_heap_caps.h>
 #include "UIManager.h"
 
 #include <cmath>
@@ -561,6 +562,42 @@ static void thumbDownscale(const lv_draw_buf_t* big, lv_draw_buf_t* small)
     }
 }
 
+// The snapshot buffer lives in PSRAM and is reused for every face. LVGL's own
+// allocator cannot find a 150 KB block in internal RAM.
+static lv_draw_buf_t gSnapBuf;
+static void* gSnapMem = nullptr;
+static uint32_t gSnapCap = 0;
+
+static lv_draw_buf_t* thumbSnapshot(lv_obj_t* src)
+{
+    const uint32_t w = static_cast<uint32_t>(lv_obj_get_width(src));
+    const uint32_t h = static_cast<uint32_t>(lv_obj_get_height(src));
+    const uint32_t stride = lv_draw_buf_width_to_stride(w, LV_COLOR_FORMAT_RGB565);
+    const uint32_t size = stride * h;
+
+    if (gSnapMem != nullptr && size > gSnapCap)
+    {
+        heap_caps_free(gSnapMem);
+        gSnapMem = nullptr;
+    }
+    if (gSnapMem == nullptr)
+    {
+        gSnapMem = heap_caps_aligned_alloc(64, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (gSnapMem == nullptr)
+        {
+            return nullptr;
+        }
+        gSnapCap = size;
+    }
+
+    lv_draw_buf_init(&gSnapBuf, w, h, LV_COLOR_FORMAT_RGB565, stride, gSnapMem, size);
+    if (lv_snapshot_take_to_draw_buf(src, LV_COLOR_FORMAT_RGB565, &gSnapBuf) != LV_RESULT_OK)
+    {
+        return nullptr;
+    }
+    return &gSnapBuf;
+}
+
 static void thumbCaptureStep(lv_timer_t*)
 {
     if (gThumbNext >= 15) return;
@@ -573,7 +610,7 @@ static void thumbCaptureStep(lv_timer_t*)
     const bool wasHidden = lv_obj_has_flag(src, LV_OBJ_FLAG_HIDDEN);
     if (wasHidden) lv_obj_remove_flag(src, LV_OBJ_FLAG_HIDDEN);
     lv_obj_update_layout(src);
-    lv_draw_buf_t* big = lv_snapshot_take(src, LV_COLOR_FORMAT_RGB565);
+    lv_draw_buf_t* big = thumbSnapshot(src);
     if (wasHidden) lv_obj_add_flag(src, LV_OBJ_FLAG_HIDDEN);
 
     if (big == nullptr)
@@ -596,7 +633,6 @@ static void thumbCaptureStep(lv_timer_t*)
         lv_image_set_src(img, gThumb[face]);
         lv_obj_invalidate(img);
     }
-    lv_draw_buf_destroy(big);
 }
 
 static void thumbStartCapture(lv_obj_t* const* faces)
