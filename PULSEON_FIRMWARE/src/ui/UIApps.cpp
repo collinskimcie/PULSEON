@@ -339,10 +339,39 @@ void UIApps::buildWeather()
 {
     lv_obj_t* root = makeRoot(PAGE_WEATHER, "WEATHER");
 
-    makePanel(root, 8, 38, 224, 104, OV_CARD, 18);
-    weatherCity = makeLabel(root, "", 16, 40, 208, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER);
-    weatherTemp = makeLabel(root, "--", 16, 60, 208, 56, font_h2, OV_ACCENT, LV_TEXT_ALIGN_CENTER);
-    weatherRange = makeLabel(root, "", 16, 118, 208, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_CENTER);
+    makePanel(root, 8, 46, 224, 96, OV_CARD, 18);
+
+    // Gauge: today's low..high, with the current temperature as the filled part.
+    weatherArc = lv_arc_create(root);
+    lv_obj_set_size(weatherArc, 84, 84);
+    lv_obj_set_pos(weatherArc, 14, 52);
+    lv_arc_set_rotation(weatherArc, 135);
+    lv_arc_set_bg_angles(weatherArc, 0, 270);
+    lv_arc_set_range(weatherArc, 0, 100);
+    lv_arc_set_value(weatherArc, 0);
+    lv_obj_remove_style(weatherArc, nullptr, LV_PART_KNOB);
+    lv_obj_clear_flag(weatherArc, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_bg_opa(weatherArc, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(weatherArc, 0, 0);
+    lv_obj_set_style_arc_width(weatherArc, 7, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(weatherArc, 7, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(weatherArc, OV_CARD_ALT, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(weatherArc, OV_ACCENT, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_rounded(weatherArc, true, LV_PART_MAIN);
+    lv_obj_set_style_arc_rounded(weatherArc, true, LV_PART_INDICATOR);
+
+    // Current temperature sits in the middle of the gauge.
+    weatherTemp = lv_label_create(root);
+    lv_label_set_text(weatherTemp, "--");
+    lv_obj_set_style_text_font(weatherTemp, font_h2, 0);
+    lv_obj_set_style_text_color(weatherTemp, OV_ACCENT, 0);
+    lv_obj_align_to(weatherTemp, weatherArc, LV_ALIGN_CENTER, 0, 0);
+
+    weatherCity = makeLabel(root, "", 106, 58, 118, 22, font_h5, OV_TEXT);
+    weatherRange = makeLabel(root, "", 106, 84, 118, 40, font_body, OV_MUTED,
+                             LV_TEXT_ALIGN_LEFT, LV_LABEL_LONG_WRAP);
+    weatherUpdated = makeLabel(root, "", 106, 122, 118, 16, font_body, OV_MUTED);
+
     weatherList = makeList(root, 8, 146, 224, 116);
 
     addAction(root, "Back", 12, 266, 216, 50, OV_CARD_ALT, OV_TEXT, ACT_BACK);
@@ -557,11 +586,27 @@ void UIApps::refreshWeather()
     const PulseonAppState& st = appState->getState();
     lv_obj_clean(weatherList);
 
+    // The theme remap does not touch arcs, so set their colors on every show.
+    if (weatherArc != nullptr)
+    {
+        lv_obj_set_style_arc_color(weatherArc, OV_CARD_ALT, LV_PART_MAIN);
+        lv_obj_set_style_arc_color(weatherArc, OV_ACCENT, LV_PART_INDICATOR);
+    }
+
     if (!st.weatherAvailable)
     {
         lv_label_set_text(weatherCity, "");
         lv_label_set_text(weatherTemp, "--");
-        lv_label_set_text(weatherRange, "Waiting for the phone");
+        lv_label_set_text(weatherRange, "Waiting for\nthe phone");
+        if (weatherUpdated != nullptr)
+        {
+            lv_label_set_text(weatherUpdated, "");
+        }
+        if (weatherArc != nullptr)
+        {
+            lv_arc_set_value(weatherArc, 0);
+            lv_obj_align_to(weatherTemp, weatherArc, LV_ALIGN_CENTER, 0, 0);
+        }
         return;
     }
 
@@ -572,8 +617,37 @@ void UIApps::refreshWeather()
     snprintf(buf, sizeof(buf), "%d", st.weatherTemperature);
     lv_label_set_text(weatherTemp, buf);
 
-    snprintf(buf, sizeof(buf), "High %d   Low %d", st.weatherHigh, st.weatherLow);
+    snprintf(buf, sizeof(buf), "High %d\nLow %d", st.weatherHigh, st.weatherLow);
     lv_label_set_text(weatherRange, buf);
+
+    if (weatherUpdated != nullptr)
+    {
+        if (st.weatherTime.length() > 0)
+        {
+            snprintf(buf, sizeof(buf), "Updated %s", st.weatherTime.c_str());
+            lv_label_set_text(weatherUpdated, buf);
+        }
+        else
+        {
+            lv_label_set_text(weatherUpdated, "");
+        }
+    }
+
+    if (weatherArc != nullptr)
+    {
+        int lo = st.weatherLow;
+        int hi = st.weatherHigh;
+        if (hi <= lo)
+        {
+            hi = lo + 1;
+        }
+        int now = st.weatherTemperature;
+        if (now < lo) now = lo;
+        if (now > hi) now = hi;
+        lv_arc_set_range(weatherArc, lo, hi);
+        lv_arc_set_value(weatherArc, now);
+        lv_obj_align_to(weatherTemp, weatherArc, LV_ALIGN_CENTER, 0, 0);
+    }
 
     Serial.printf("[WEATHER] icon=%d temp=%d\n", st.weatherIcon, st.weatherTemperature);
 
@@ -602,7 +676,7 @@ void UIApps::refreshWeather()
             weekdayName(i, st.clockSynced, name, sizeof(name));
         }
         lv_obj_t* row = makePanel(weatherList, 0, 0, 220, 30, OV_CARD, 12);
-        makeLabel(row, name, 10, 5, 62, 20, font_body, OV_TEXT);
+        makeLabel(row, name, 10, 5, 62, 20, font_body, i == 0 ? OV_ACCENT : OV_TEXT);
 
         snprintf(buf, sizeof(buf), "%d", d.low);
         makeLabel(row, buf, 72, 5, 28, 20, font_body, OV_MUTED, LV_TEXT_ALIGN_RIGHT);

@@ -121,6 +121,8 @@ private:
     lv_obj_t* weatherTemp = nullptr;
     lv_obj_t* weatherRange = nullptr;
     lv_obj_t* weatherList = nullptr;
+    lv_obj_t* weatherArc = nullptr;
+    lv_obj_t* weatherUpdated = nullptr;
     lv_obj_t* alarmList = nullptr;
 
     struct AlarmRow
