@@ -12,16 +12,95 @@
 namespace
 {
 constexpr uint32_t BANNER_MS = 6000;
+constexpr int32_t BANNER_Y = 52;
+constexpr int32_t BANNER_HIDDEN_Y = -90;
+constexpr int32_t CARD_H = 80;
+constexpr int32_t CARD_H_OPEN = 140;
 
-const lv_color_t OV_BG = lv_color_hex(0x090A0E);
-const lv_color_t OV_CARD = lv_color_hex(0x15161C);
-const lv_color_t OV_CARD_ALT = lv_color_hex(0x25262D);
-const lv_color_t OV_TEXT = lv_color_hex(0xF7F7FA);
-const lv_color_t OV_MUTED = lv_color_hex(0xA8A3AB);
-const lv_color_t OV_ACCENT = lv_color_hex(0xFF5D6C);
-const lv_color_t OV_ACCENT_DARK = lv_color_hex(0x54252D);
-const lv_color_t OV_GOOD = lv_color_hex(0x75D6B1);
-const lv_color_t OV_AMBER = lv_color_hex(0xFFC66D);
+// Overlay colors follow the selected theme. UIOverlays::applyTheme() reloads
+// them and rebuilds the (hidden) overlays when the theme changes.
+lv_color_t OV_BG, OV_CARD, OV_CARD_ALT, OV_TEXT, OV_MUTED, OV_ACCENT, OV_ACCENT_DARK, OV_GOOD, OV_AMBER;
+uint8_t gTheme = 0;
+
+void loadColors(uint8_t theme)
+{
+    gTheme = theme % UI_PALETTE_COUNT;
+    const UIPalette& p = UI_PALETTES[gTheme];
+    OV_BG = lv_color_hex(p.bg);
+    OV_CARD = lv_color_hex(p.card);
+    OV_CARD_ALT = lv_color_hex(p.cardAlt);
+    OV_TEXT = lv_color_hex(p.text);
+    OV_MUTED = lv_color_hex(p.muted);
+    OV_ACCENT = lv_color_hex(p.accent);
+    OV_ACCENT_DARK = lv_color_hex(p.accentDark);
+    OV_GOOD = lv_color_hex(p.good);
+    OV_AMBER = lv_color_hex(p.tile[2]);
+}
+
+// ---- small animation helpers ----------------------------------------
+
+void animSetY(void* var, int32_t v)
+{
+    lv_obj_set_y(static_cast<lv_obj_t*>(var), v);
+}
+
+void animSetW(void* var, int32_t v)
+{
+    lv_obj_set_width(static_cast<lv_obj_t*>(var), v);
+}
+
+// v runs 0..200; folded into a 0..100..0 triangle so a border breathes.
+void animPulse(void* var, int32_t v)
+{
+    const int32_t t = v <= 100 ? v : 200 - v;
+    lv_obj_set_style_border_opa(static_cast<lv_obj_t*>(var), static_cast<lv_opa_t>(50 + t * 2), 0);
+}
+
+void startAnim(lv_obj_t* obj, lv_anim_exec_xcb_t cb, int32_t from, int32_t to,
+               uint32_t ms, lv_anim_path_cb_t path, bool repeat = false)
+{
+    if (obj == nullptr)
+    {
+        return;
+    }
+    lv_anim_delete(obj, cb);
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, obj);
+    lv_anim_set_exec_cb(&a, cb);
+    lv_anim_set_values(&a, from, to);
+    lv_anim_set_duration(&a, ms);
+    lv_anim_set_path_cb(&a, path);
+    if (repeat)
+    {
+        lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+    }
+    lv_anim_start(&a);
+}
+
+void stopAnim(lv_obj_t* obj, lv_anim_exec_xcb_t cb)
+{
+    if (obj != nullptr)
+    {
+        lv_anim_delete(obj, cb);
+    }
+}
+
+void startPulse(lv_obj_t* obj)
+{
+    startAnim(obj, animPulse, 0, 200, 1400, lv_anim_path_linear, true);
+}
+
+void stopPulse(lv_obj_t* obj)
+{
+    stopAnim(obj, animPulse);
+    if (obj != nullptr)
+    {
+        lv_obj_set_style_border_opa(obj, LV_OPA_COVER, 0);
+    }
+}
+
+// ---- widget helpers ----------------------------------------------------
 
 lv_obj_t* makeLabel(
     lv_obj_t* parent,
@@ -48,6 +127,8 @@ lv_obj_t* makeLabel(
     return label;
 }
 
+// Panels are decorative by default: taps fall through to whatever clickable
+// parent sits below. Roots and cards add LV_OBJ_FLAG_CLICKABLE themselves.
 lv_obj_t* makePanel(
     lv_obj_t* parent,
     int32_t x,
@@ -67,6 +148,7 @@ lv_obj_t* makePanel(
     lv_obj_set_style_radius(panel, radius, 0);
     lv_obj_set_style_pad_all(panel, 0, 0);
     lv_obj_clear_flag(panel, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(panel, LV_OBJ_FLAG_CLICKABLE);
     return panel;
 }
 
@@ -88,6 +170,7 @@ lv_obj_t* makeButton(
     lv_obj_set_size(button, w, h);
     lv_obj_set_style_bg_color(button, bg, 0);
     lv_obj_set_style_bg_opa(button, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_opa(button, LV_OPA_70, LV_STATE_PRESSED);
     lv_obj_set_style_border_width(button, 0, 0);
     lv_obj_set_style_shadow_width(button, 0, 0);
     lv_obj_set_style_radius(button, h / 2, 0);
@@ -125,7 +208,7 @@ lv_color_t badgeColor(const String& name)
     {
         hash = hash * 33 + static_cast<uint8_t>(name[i]);
     }
-    const UIPalette& p = UI_PALETTES[uiThemeLoad() % UI_PALETTE_COUNT];
+    const UIPalette& p = UI_PALETTES[gTheme];
     return lv_color_hex(p.tile[hash % 8]);
 }
 
@@ -186,6 +269,21 @@ void UIOverlays::begin(AppStateManager* state, ChronosManager* chronosManager)
         lastNotifSeq = st.notificationSeq;
     }
 
+    loadColors(uiThemeLoad());
+
+    // Timers live for the whole run; theme rebuilds only recreate the panels.
+    bannerTimer = lv_timer_create(bannerTimerCallback, BANNER_MS, this);
+    lv_timer_pause(bannerTimer);
+    callTimer = lv_timer_create(callTimerCallback, 500, this);
+    lv_timer_pause(callTimer);
+    findTimer = lv_timer_create(findTimerCallback, 700, this);
+    lv_timer_pause(findTimer);
+
+    buildAll();
+}
+
+void UIOverlays::buildAll()
+{
     buildBanner();
     buildHistory();
     buildCall();
@@ -193,9 +291,43 @@ void UIOverlays::begin(AppStateManager* state, ChronosManager* chronosManager)
     buildFind();
 }
 
+void UIOverlays::destroyAll()
+{
+    lv_obj_t** roots[] = {&banner, &historyRoot, &callRoot, &alarmRoot, &findRoot};
+    for (lv_obj_t** root : roots)
+    {
+        if (*root != nullptr)
+        {
+            lv_obj_delete(*root);
+            *root = nullptr;
+        }
+    }
+    bannerApp = nullptr;
+    bannerTitle = nullptr;
+    bannerText = nullptr;
+    bannerBadge = nullptr;
+    bannerBar = nullptr;
+    historyList = nullptr;
+    callName = nullptr;
+    callBadge = nullptr;
+    callRing = nullptr;
+    callElapsed = nullptr;
+    alarmTime = nullptr;
+    alarmRing = nullptr;
+}
+
+// Only called while nothing is on screen (see poll()).
+void UIOverlays::applyTheme(uint8_t theme)
+{
+    destroyAll();
+    loadColors(theme);
+    buildAll();
+    Serial.printf("[UI] Overlay theme: %s\n", UI_PALETTES[gTheme].name);
+}
+
 void UIOverlays::buildBanner()
 {
-    banner = makePanel(lv_layer_top(), 8, 52, 224, 84, OV_CARD, 16);
+    banner = makePanel(lv_layer_top(), 8, BANNER_Y, 224, 84, OV_CARD, 16);
     lv_obj_set_style_border_color(banner, OV_ACCENT, 0);
     lv_obj_set_style_border_width(banner, 1, 0);
     lv_obj_add_flag(banner, LV_OBJ_FLAG_CLICKABLE);
@@ -207,10 +339,10 @@ void UIOverlays::buildBanner()
     bannerText = makeLabel(banner, "", 12, 46, 200, 32, font_body, OV_MUTED,
                            LV_TEXT_ALIGN_LEFT, LV_LABEL_LONG_WRAP);
 
-    lv_obj_add_flag(banner, LV_OBJ_FLAG_HIDDEN);
+    // Thin countdown bar along the bottom edge; shrinks while the banner is up.
+    bannerBar = makePanel(banner, 14, 79, 196, 3, OV_ACCENT, 2);
 
-    bannerTimer = lv_timer_create(bannerTimerCallback, BANNER_MS, this);
-    lv_timer_pause(bannerTimer);
+    lv_obj_add_flag(banner, LV_OBJ_FLAG_HIDDEN);
 }
 
 void UIOverlays::buildHistory()
@@ -252,15 +384,14 @@ void UIOverlays::buildCall()
 
     callBadge = makeBadge(callRoot, 76, 62, 88, String(""), font_h2);
 
-    callName = makeLabel(callRoot, "", 12, 170, 216, 60, font_h3, OV_TEXT,
+    callName = makeLabel(callRoot, "", 12, 168, 216, 56, font_h3, OV_TEXT,
                          LV_TEXT_ALIGN_CENTER, LV_LABEL_LONG_WRAP);
-    makeLabel(callRoot, "Answer on your phone", 16, 234, 208, 20, font_body, OV_MUTED,
+    callElapsed = makeLabel(callRoot, "Ringing  0:00", 16, 226, 208, 18, font_body, OV_GOOD,
+                            LV_TEXT_ALIGN_CENTER);
+    makeLabel(callRoot, "Answer on your phone", 16, 244, 208, 20, font_body, OV_MUTED,
               LV_TEXT_ALIGN_CENTER);
     makeButton(callRoot, "Hide", 60, 268, 120, 44, OV_CARD_ALT, OV_TEXT,
                callHideClicked, this);
-
-    callTimer = lv_timer_create(callTimerCallback, 500, this);
-    lv_timer_pause(callTimer);
 
     lv_obj_add_flag(callRoot, LV_OBJ_FLAG_HIDDEN);
 }
@@ -272,14 +403,39 @@ void UIOverlays::buildAlarm()
 
     makeLabel(alarmRoot, "ALARM", 16, 60, 208, 24, font_h5, OV_AMBER,
               LV_TEXT_ALIGN_CENTER);
+
+    // Pill behind the time; its border breathes while the alarm rings.
+    alarmRing = makePanel(alarmRoot, 8, 98, 224, 96, OV_BG, 28);
+    lv_obj_set_style_bg_opa(alarmRing, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_color(alarmRing, OV_AMBER, 0);
+    lv_obj_set_style_border_width(alarmRing, 3, 0);
+
     alarmTime = makeLabel(alarmRoot, "--:--", 8, 110, 224, 70, font_h2, OV_TEXT,
                           LV_TEXT_ALIGN_CENTER);
+    makeLabel(alarmRoot, "Snooze adds 5 minutes", 16, 208, 208, 20, font_body, OV_MUTED,
+              LV_TEXT_ALIGN_CENTER);
+
     makeButton(alarmRoot, "Snooze", 8, 250, 108, 44, OV_CARD_ALT, OV_AMBER,
                alarmSnoozeClicked, this);
     makeButton(alarmRoot, "Stop", 124, 250, 108, 44, OV_ACCENT_DARK, OV_ACCENT,
                alarmStopClicked, this);
 
     lv_obj_add_flag(alarmRoot, LV_OBJ_FLAG_HIDDEN);
+}
+
+void UIOverlays::buildFind()
+{
+    findRoot = makePanel(lv_layer_top(), 0, 0, 240, 320, OV_ACCENT_DARK, 0);
+    lv_obj_add_flag(findRoot, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(findRoot, findDismissClicked, LV_EVENT_CLICKED, this);
+
+    makeLabel(findRoot, "FIND WATCH", 16, 110, 208, 28, font_h4, OV_TEXT, LV_TEXT_ALIGN_CENTER);
+    makeLabel(findRoot, "Your phone is looking for me", 16, 150, 208, 40, font_body, OV_TEXT,
+              LV_TEXT_ALIGN_CENTER, LV_LABEL_LONG_WRAP);
+    makeLabel(findRoot, "Tap anywhere to stop", 16, 270, 208, 20, font_body, OV_MUTED,
+              LV_TEXT_ALIGN_CENTER);
+
+    lv_obj_add_flag(findRoot, LV_OBJ_FLAG_HIDDEN);
 }
 
 // ------------------------------------------------------------------
@@ -294,6 +450,22 @@ void UIOverlays::poll()
     }
 
     const PulseonAppState& st = appState->getState();
+
+    // Follow theme changes made on the Apps page, but only while nothing of
+    // ours is on screen (the panels are rebuilt in the new colors).
+    const uint32_t nowMs = millis();
+    if (nowMs - lastThemeCheckMs > 1000)
+    {
+        lastThemeCheckMs = nowMs;
+        if (!isModalVisible() && !bannerVisible && !findVisible)
+        {
+            const uint8_t theme = uiThemeLoad();
+            if (theme != gTheme)
+            {
+                applyTheme(theme);
+            }
+        }
+    }
 
     // Call
     if (st.callActive)
@@ -333,6 +505,16 @@ void UIOverlays::poll()
         hideFind();
     }
 
+    // History card tapped (expand / collapse): rebuilt here, outside the event.
+    if (historyDirty)
+    {
+        historyDirty = false;
+        if (historyVisible)
+        {
+            rebuildHistory();
+        }
+    }
+
     // Notifications
     if (st.notificationHead != lastNotifHead ||
         st.notificationStored != lastNotifStored)
@@ -342,6 +524,7 @@ void UIOverlays::poll()
 
         if (historyVisible)
         {
+            expandedIdx = -1;
             rebuildHistory();
         }
 
@@ -379,16 +562,24 @@ void UIOverlays::showBanner(const PulseonNotification& n)
         header += n.time;
     }
 
+    const lv_color_t accent = badgeColor(n.app);
+
     lv_obj_set_style_text_font(bannerTitle, uiEmojiFont(font_h5), 0);
     lv_obj_set_style_text_font(bannerText, uiEmojiFont(font_body), 0);
     lv_label_set_text(bannerApp, uiText(header).c_str());
     lv_label_set_text(bannerTitle, uiText(n.title).c_str());
     lv_label_set_text(bannerText, uiText(n.message).c_str());
     updateBadge(bannerBadge, n.app);
-    lv_obj_set_style_border_color(banner, badgeColor(n.app), 0);
+    lv_obj_set_style_border_color(banner, accent, 0);
+    lv_obj_set_style_bg_color(bannerBar, accent, 0);
 
+    // Slide in from above; the countdown bar shrinks until the banner hides.
+    lv_obj_set_y(banner, BANNER_HIDDEN_Y);
+    lv_obj_set_width(bannerBar, 196);
     lv_obj_clear_flag(banner, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(banner);
+    startAnim(banner, animSetY, BANNER_HIDDEN_Y, BANNER_Y, 240, lv_anim_path_ease_out);
+    startAnim(bannerBar, animSetW, 196, 0, BANNER_MS, lv_anim_path_linear);
     bannerVisible = true;
 
     lv_timer_reset(bannerTimer);
@@ -397,6 +588,8 @@ void UIOverlays::showBanner(const PulseonNotification& n)
 
 void UIOverlays::hideBanner()
 {
+    stopAnim(banner, animSetY);
+    stopAnim(bannerBar, animSetW);
     if (banner != nullptr)
     {
         lv_obj_add_flag(banner, LV_OBJ_FLAG_HIDDEN);
@@ -440,7 +633,12 @@ void UIOverlays::showHistory()
     }
 
     hideBanner();
+    expandedIdx = -1;
     rebuildHistory();
+    if (historyList != nullptr)
+    {
+        lv_obj_scroll_to_y(historyList, 0, LV_ANIM_OFF);
+    }
     lv_obj_clear_flag(historyRoot, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(historyRoot);
     uiSlideIn(historyRoot);
@@ -468,14 +666,22 @@ void UIOverlays::rebuildHistory()
         return;
     }
 
+    const int32_t keepScroll = lv_obj_get_scroll_y(historyList);
     lv_obj_clean(historyList);
 
     const uint8_t stored = appState->getState().notificationStored;
     if (stored == 0)
     {
-        makeLabel(historyList, "No notifications", 0, 0, 224, 24, font_body, OV_MUTED,
+        makeLabel(historyList, "No notifications", 0, 24, 224, 24, font_h5, OV_TEXT,
+                  LV_TEXT_ALIGN_CENTER);
+        makeLabel(historyList, "You're all caught up", 0, 52, 224, 20, font_body, OV_MUTED,
                   LV_TEXT_ALIGN_CENTER);
         return;
+    }
+
+    if (expandedIdx >= static_cast<int8_t>(stored))
+    {
+        expandedIdx = -1;
     }
 
     for (uint8_t i = 0; i < stored; ++i)
@@ -486,10 +692,20 @@ void UIOverlays::rebuildHistory()
             continue;
         }
 
-        lv_obj_t* card = makePanel(historyList, 0, 0, 224, 80, OV_CARD, 14);
+        const bool open = (expandedIdx == static_cast<int8_t>(i));
+        const int32_t cardH = open ? CARD_H_OPEN : CARD_H;
+        const lv_color_t accent = badgeColor(n->app);
+
+        lv_obj_t* card = makePanel(historyList, 0, 0, 224, cardH, OV_CARD, 14);
+        lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
 
         deleteCtx[i].self = this;
         deleteCtx[i].index = i;
+        lv_obj_add_event_cb(card, historyCardClicked, LV_EVENT_CLICKED, &deleteCtx[i]);
+
+        // Accent stripe in the app's color.
+        makePanel(card, 0, 14, 4, cardH - 28, accent, 2);
+
         lv_obj_t* del = lv_button_create(card);
         lv_obj_set_pos(del, 186, 4);
         lv_obj_set_size(del, 32, 26);
@@ -511,12 +727,41 @@ void UIOverlays::rebuildHistory()
             header += n->time;
         }
 
-        makeBadge(card, 10, 8, 30, n->app, font_h5);
-        makeLabel(card, uiText(header).c_str(), 48, 6, 134, 16, font_body, OV_MUTED);
-        makeLabel(card, uiText(n->title).c_str(), 48, 22, 134, 22, uiEmojiFont(font_h5), OV_TEXT);
-        makeLabel(card, uiText(n->message).c_str(), 12, 44, 200, 32, uiEmojiFont(font_body), OV_MUTED,
-                  LV_TEXT_ALIGN_LEFT, LV_LABEL_LONG_WRAP);
+        makeBadge(card, 12, 8, 30, n->app, font_h5);
+        makeLabel(card, uiText(header).c_str(), 50, 6, 132, 16, font_body, OV_MUTED);
+        makeLabel(card, uiText(n->title).c_str(), 50, 22, 132, 22, uiEmojiFont(font_h5), OV_TEXT);
+        makeLabel(card, uiText(n->message).c_str(), 12, 44, 200, open ? 88 : 34,
+                  uiEmojiFont(font_body), OV_MUTED, LV_TEXT_ALIGN_LEFT, LV_LABEL_LONG_WRAP);
     }
+
+    lv_obj_update_layout(historyList);
+    lv_obj_scroll_to_y(historyList, keepScroll, LV_ANIM_OFF);
+}
+
+void UIOverlays::historyCardClicked(lv_event_t* event)
+{
+    DeleteCtx* ctx = static_cast<DeleteCtx*>(lv_event_get_user_data(event));
+    if (ctx == nullptr || ctx->self == nullptr)
+    {
+        return;
+    }
+    UIOverlays* self = ctx->self;
+    const int8_t idx = static_cast<int8_t>(ctx->index);
+    self->expandedIdx = (self->expandedIdx == idx) ? static_cast<int8_t>(-1) : idx;
+    // poll() rebuilds the cards outside this event.
+    self->historyDirty = true;
+}
+
+void UIOverlays::historyDeleteClicked(lv_event_t* event)
+{
+    DeleteCtx* ctx = static_cast<DeleteCtx*>(lv_event_get_user_data(event));
+    if (ctx == nullptr || ctx->self == nullptr || ctx->self->appState == nullptr)
+    {
+        return;
+    }
+    ctx->self->expandedIdx = -1;
+    // poll() sees the list change and rebuilds the cards outside this event.
+    ctx->self->appState->removeNotification(ctx->index);
 }
 
 void UIOverlays::historyCloseClicked(lv_event_t* event)
@@ -540,6 +785,7 @@ void UIOverlays::historyClearClicked(lv_event_t* event)
     {
         self->chronos->clearNotifications();
     }
+    self->expandedIdx = -1;
     self->rebuildHistory();
 }
 
@@ -550,27 +796,42 @@ void UIOverlays::historyClearClicked(lv_event_t* event)
 void UIOverlays::showCall(const String& caller)
 {
     Serial.println("[UI] showing call");
+    const bool wasVisible = callVisible;
     lastCallName = caller;
     lv_obj_set_style_text_font(callName, uiEmojiFont(font_h3), 0);
     const String shownCaller = uiText(caller);
     lv_label_set_text(callName, shownCaller.length() > 0 ? shownCaller.c_str() : "Unknown");
     updateBadge(callBadge, caller);
-    callPhase = 0;
+
+    if (!wasVisible)
+    {
+        callStartMs = millis();
+        lv_label_set_text(callElapsed, "Ringing  0:00");
+    }
     if (callTimer != nullptr)
     {
-        lv_timer_reset(callTimer);
+        if (!wasVisible)
+        {
+            lv_timer_reset(callTimer);
+        }
         lv_timer_resume(callTimer);
     }
+    startPulse(callRing);
 
     hideBanner();
     lv_obj_clear_flag(callRoot, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(callRoot);
+    if (!wasVisible)
+    {
+        uiSlideIn(callRoot);
+    }
     if (alarmVisible) lv_obj_move_foreground(alarmRoot);
     callVisible = true;
 }
 
 void UIOverlays::hideCall()
 {
+    stopPulse(callRing);
     lv_obj_add_flag(callRoot, LV_OBJ_FLAG_HIDDEN);
     callVisible = false;
     lastCallName = "";
@@ -583,12 +844,15 @@ void UIOverlays::hideCall()
 void UIOverlays::callTimerCallback(lv_timer_t* timer)
 {
     UIOverlays* self = static_cast<UIOverlays*>(lv_timer_get_user_data(timer));
-    if (self == nullptr || self->callRing == nullptr)
+    if (self == nullptr || self->callElapsed == nullptr)
     {
         return;
     }
-    self->callPhase ^= 1;
-    lv_obj_set_style_border_opa(self->callRing, self->callPhase ? LV_OPA_COVER : LV_OPA_20, 0);
+    const uint32_t s = (millis() - self->callStartMs) / 1000;
+    char buf[24];
+    snprintf(buf, sizeof(buf), "Ringing  %u:%02u",
+             static_cast<unsigned>(s / 60), static_cast<unsigned>(s % 60));
+    lv_label_set_text(self->callElapsed, buf);
 }
 
 void UIOverlays::callHideClicked(lv_event_t* event)
@@ -640,11 +904,14 @@ void UIOverlays::showAlarm(int8_t index)
     hideBanner();
     lv_obj_clear_flag(alarmRoot, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(alarmRoot);
+    uiSlideIn(alarmRoot);
+    startPulse(alarmRing);
     alarmVisible = true;
 }
 
 void UIOverlays::hideAlarm()
 {
+    stopPulse(alarmRing);
     lv_obj_add_flag(alarmRoot, LV_OBJ_FLAG_HIDDEN);
     alarmVisible = false;
 }
@@ -667,23 +934,9 @@ void UIOverlays::alarmStopClicked(lv_event_t* event)
     }
 }
 
-void UIOverlays::buildFind()
-{
-    findRoot = makePanel(lv_layer_top(), 0, 0, 240, 320, OV_ACCENT_DARK, 0);
-    lv_obj_add_flag(findRoot, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(findRoot, findDismissClicked, LV_EVENT_CLICKED, this);
-
-    makeLabel(findRoot, "FIND WATCH", 16, 110, 208, 28, font_h4, OV_TEXT, LV_TEXT_ALIGN_CENTER);
-    makeLabel(findRoot, "Your phone is looking for me", 16, 150, 208, 40, font_body, OV_TEXT,
-              LV_TEXT_ALIGN_CENTER, LV_LABEL_LONG_WRAP);
-    makeLabel(findRoot, "Tap anywhere to stop", 16, 270, 208, 20, font_body, OV_MUTED,
-              LV_TEXT_ALIGN_CENTER);
-
-    lv_obj_add_flag(findRoot, LV_OBJ_FLAG_HIDDEN);
-
-    findTimer = lv_timer_create(findTimerCallback, 700, this);
-    lv_timer_pause(findTimer);
-}
+// ------------------------------------------------------------------
+// Find watch
+// ------------------------------------------------------------------
 
 void UIOverlays::showFind()
 {
@@ -742,6 +995,10 @@ void UIOverlays::findDismissClicked(lv_event_t* event)
     }
 }
 
+// ------------------------------------------------------------------
+// Quiet hours
+// ------------------------------------------------------------------
+
 bool UIOverlays::quietNow(const PulseonAppState& st) const
 {
     if (!st.quietEnabled || !st.clockSynced)
@@ -768,15 +1025,4 @@ bool UIOverlays::quietNow(const PulseonAppState& st) const
         return false;
     }
     return start < end ? (now >= start && now < end) : (now >= start || now < end);
-}
-
-void UIOverlays::historyDeleteClicked(lv_event_t* event)
-{
-    DeleteCtx* ctx = static_cast<DeleteCtx*>(lv_event_get_user_data(event));
-    if (ctx == nullptr || ctx->self == nullptr || ctx->self->appState == nullptr)
-    {
-        return;
-    }
-    // poll() sees the list change and rebuilds the cards outside this event.
-    ctx->self->appState->removeNotification(ctx->index);
 }
