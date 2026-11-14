@@ -572,12 +572,18 @@ static void thumbCaptureStep(lv_timer_t*)
     // Hidden objects are not rendered, so show the face just for the capture.
     const bool wasHidden = lv_obj_has_flag(src, LV_OBJ_FLAG_HIDDEN);
     if (wasHidden) lv_obj_remove_flag(src, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_update_layout(src);
     lv_draw_buf_t* big = lv_snapshot_take(src, LV_COLOR_FORMAT_RGB565);
     if (wasHidden) lv_obj_add_flag(src, LV_OBJ_FLAG_HIDDEN);
 
     if (big == nullptr)
     {
-        Serial.printf("[UI] thumb %u: snapshot failed\n", static_cast<unsigned>(face));
+        Serial.printf("[UI] thumb %u: snapshot failed (obj %dx%d, children %u, heap free %u max %u, psram free %u max %u)\n",
+                      static_cast<unsigned>(face),
+                      static_cast<int>(lv_obj_get_width(src)), static_cast<int>(lv_obj_get_height(src)),
+                      static_cast<unsigned>(lv_obj_get_child_count(src)),
+                      static_cast<unsigned>(ESP.getFreeHeap()), static_cast<unsigned>(ESP.getMaxAllocHeap()),
+                      static_cast<unsigned>(ESP.getFreePsram()), static_cast<unsigned>(ESP.getMaxAllocPsram()));
         return;
     }
     if (gThumb[face] == nullptr)
