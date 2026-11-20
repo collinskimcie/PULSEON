@@ -736,6 +736,7 @@ void glanceBuild(lv_obj_t* panel)
     box(panel, 124, 230, 102, 64, 16, col.card);
     lblL(panel, NF_S, col.dim, 138, 238, 80, "Messages");
     gl.msg = lblL(panel, NF_M, col.text, 138, 260, 84, "0 new");
+    wifiBadge(panel, NEW_FACE_GLANCE, 202, 8, col.a1, col.dim);
 }
 
 // ============================ NOW ============================
