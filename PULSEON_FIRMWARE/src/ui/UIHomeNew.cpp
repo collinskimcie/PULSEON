@@ -121,6 +121,15 @@ void styleArc(lv_obj_t* a, int w, lv_color_t c, lv_color_t track)
     lv_obj_set_style_arc_rounded(a, true, LV_PART_INDICATOR);
 }
 
+// ---- Wi-Fi badge: one small icon per face, polled from WiFi.status() ----
+struct WifiBadge
+{
+    lv_obj_t* obj;
+    lv_color_t on, off;
+};
+WifiBadge wifiB[NEW_FACE_COUNT] = {};
+int8_t wifiShown = -1;
+
 void fmtTime(const HomeData& d, char* out, size_t n)
 {
     if (d.timeValid)
