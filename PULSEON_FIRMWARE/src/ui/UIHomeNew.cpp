@@ -660,6 +660,7 @@ void stackBuild(lv_obj_t* panel)
     lbl(panel, NF_S, col.dim, 120, 293, 72, "bpm");
     sk.tmp = lbl(panel, NF_M, col.text, 188, 270, 72, "--");
     sk.wx = lbl(panel, NF_S, col.dim, 188, 293, 72, "weather");
+    wifiBadge(panel, NEW_FACE_STACK, 152, 20, col.a1, col.dim);
 }
 
 // ============================ GLANCE ============================
