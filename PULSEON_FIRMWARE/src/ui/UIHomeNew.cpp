@@ -881,6 +881,7 @@ void uiNewUpdate(const HomeData& data)
     if (panels[NEW_FACE_STACK]) stackUpdate(data);
     if (panels[NEW_FACE_GLANCE]) glanceUpdate(data);
     if (panels[NEW_FACE_NOW]) nowUpdate(data);
+    wifiRefresh();
 }
 
 void uiNewRecolor(const HomeColors& colors)
