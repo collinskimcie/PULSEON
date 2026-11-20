@@ -825,6 +825,7 @@ void nowBuild(lv_obj_t* panel)
     lbl(panel, NF_S, col.dim, 120, 284, 80, "steps");
     nw.tmp = lbl(panel, NF_M, col.text, 192, 260, 80, "--");
     lbl(panel, NF_S, col.dim, 192, 284, 80, "temp");
+    wifiBadge(panel, NEW_FACE_NOW, 216, 8, col.a1, col.dim);
 }
 
 void buildKind(lv_obj_t* panel, uint8_t kind)
