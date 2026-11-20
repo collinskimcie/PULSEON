@@ -130,6 +130,14 @@ struct WifiBadge
 WifiBadge wifiB[NEW_FACE_COUNT] = {};
 int8_t wifiShown = -1;
 
+void wifiBadge(lv_obj_t* p, uint8_t kind, int cx, int y, lv_color_t on, lv_color_t off)
+{
+    wifiB[kind].on = on;
+    wifiB[kind].off = off;
+    wifiB[kind].obj = lbl(p, LV_FONT_DEFAULT, off, cx, y, 30, LV_SYMBOL_WIFI);
+    wifiShown = -1;
+}
+
 void fmtTime(const HomeData& d, char* out, size_t n)
 {
     if (d.timeValid)
