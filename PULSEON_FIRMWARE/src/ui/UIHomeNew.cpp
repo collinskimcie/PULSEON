@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <WiFi.h>
 
 #if LV_FONT_MONTSERRAT_48
 #define NF_XL (&lv_font_montserrat_48)
@@ -32,6 +33,9 @@
 #define NF_S LV_FONT_DEFAULT
 #endif
 
+#ifdef HEX
+#undef HEX
+#endif
 #define HEX(v) lv_color_hex(v)
 
 namespace
@@ -115,6 +119,40 @@ void styleArc(lv_obj_t* a, int w, lv_color_t c, lv_color_t track)
     lv_obj_set_style_arc_width(a, w, LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(a, c, LV_PART_INDICATOR);
     lv_obj_set_style_arc_rounded(a, true, LV_PART_INDICATOR);
+}
+
+// ---- Wi-Fi badge: one small icon per face, polled from WiFi.status() ----
+struct WifiBadge
+{
+    lv_obj_t* obj;
+    lv_color_t on, off;
+};
+WifiBadge wifiB[NEW_FACE_COUNT] = {};
+int8_t wifiShown = -1;
+
+void wifiBadge(lv_obj_t* p, uint8_t kind, int cx, int y, lv_color_t on, lv_color_t off)
+{
+    wifiB[kind].on = on;
+    wifiB[kind].off = off;
+    wifiB[kind].obj = lbl(p, LV_FONT_DEFAULT, off, cx, y, 30, LV_SYMBOL_WIFI);
+    wifiShown = -1;
+}
+
+void wifiRefresh()
+{
+    const int8_t c = (WiFi.status() == WL_CONNECTED) ? 1 : 0;
+    if (c == wifiShown)
+    {
+        return;
+    }
+    wifiShown = c;
+    for (uint8_t k = 0; k < NEW_FACE_COUNT; ++k)
+    {
+        if (wifiB[k].obj)
+        {
+            lv_obj_set_style_text_color(wifiB[k].obj, c ? wifiB[k].on : wifiB[k].off, 0);
+        }
+    }
 }
 
 void fmtTime(const HomeData& d, char* out, size_t n)
@@ -218,6 +256,7 @@ void analogBuild(lv_obj_t* panel)
     an.wd = lbl(panel, NF_S, col.dim, 65, 258, 100, "---");
     an.dm = lbl(panel, NF_M, col.text, 65, 276, 100, "--");
     an.steps = lbl(panel, NF_M, col.a1, 175, 276, 100, "0");
+    wifiBadge(panel, NEW_FACE_ANALOG, 120, 1, col.a1, col.dim);
 }
 
 // ============================ EMBER EYES ============================
@@ -487,6 +526,7 @@ void wfBuild(lv_obj_t* panel)
     wf.alarm = lbl(panel, NF_S, red, 120, 264, 56, "--:--");
 
     wf.bat = mkGauge(panel, 178, 262, 56, 0, 100, 5, "bat");
+    wifiBadge(panel, NEW_FACE_WAYFINDER, 120, 6, red, HEX(0x7A1A1A));
 }
 
 
@@ -620,6 +660,7 @@ void stackBuild(lv_obj_t* panel)
     lbl(panel, NF_S, col.dim, 120, 293, 72, "bpm");
     sk.tmp = lbl(panel, NF_M, col.text, 188, 270, 72, "--");
     sk.wx = lbl(panel, NF_S, col.dim, 188, 293, 72, "weather");
+    wifiBadge(panel, NEW_FACE_STACK, 152, 20, col.a1, col.dim);
 }
 
 // ============================ GLANCE ============================
@@ -695,6 +736,7 @@ void glanceBuild(lv_obj_t* panel)
     box(panel, 124, 230, 102, 64, 16, col.card);
     lblL(panel, NF_S, col.dim, 138, 238, 80, "Messages");
     gl.msg = lblL(panel, NF_M, col.text, 138, 260, 84, "0 new");
+    wifiBadge(panel, NEW_FACE_GLANCE, 202, 8, col.a1, col.dim);
 }
 
 // ============================ NOW ============================
@@ -783,6 +825,7 @@ void nowBuild(lv_obj_t* panel)
     lbl(panel, NF_S, col.dim, 120, 284, 80, "steps");
     nw.tmp = lbl(panel, NF_M, col.text, 192, 260, 80, "--");
     lbl(panel, NF_S, col.dim, 192, 284, 80, "temp");
+    wifiBadge(panel, NEW_FACE_NOW, 216, 8, col.a1, col.dim);
 }
 
 void buildKind(lv_obj_t* panel, uint8_t kind)
@@ -838,6 +881,7 @@ void uiNewUpdate(const HomeData& data)
     if (panels[NEW_FACE_STACK]) stackUpdate(data);
     if (panels[NEW_FACE_GLANCE]) glanceUpdate(data);
     if (panels[NEW_FACE_NOW]) nowUpdate(data);
+    wifiRefresh();
 }
 
 void uiNewRecolor(const HomeColors& colors)
