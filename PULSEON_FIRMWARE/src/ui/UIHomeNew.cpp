@@ -138,6 +138,23 @@ void wifiBadge(lv_obj_t* p, uint8_t kind, int cx, int y, lv_color_t on, lv_color
     wifiShown = -1;
 }
 
+void wifiRefresh()
+{
+    const int8_t c = (WiFi.status() == WL_CONNECTED) ? 1 : 0;
+    if (c == wifiShown)
+    {
+        return;
+    }
+    wifiShown = c;
+    for (uint8_t k = 0; k < NEW_FACE_COUNT; ++k)
+    {
+        if (wifiB[k].obj)
+        {
+            lv_obj_set_style_text_color(wifiB[k].obj, c ? wifiB[k].on : wifiB[k].off, 0);
+        }
+    }
+}
+
 void fmtTime(const HomeData& d, char* out, size_t n)
 {
     if (d.timeValid)
