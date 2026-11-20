@@ -256,6 +256,7 @@ void analogBuild(lv_obj_t* panel)
     an.wd = lbl(panel, NF_S, col.dim, 65, 258, 100, "---");
     an.dm = lbl(panel, NF_M, col.text, 65, 276, 100, "--");
     an.steps = lbl(panel, NF_M, col.a1, 175, 276, 100, "0");
+    wifiBadge(panel, NEW_FACE_ANALOG, 120, 1, col.a1, col.dim);
 }
 
 // ============================ EMBER EYES ============================
