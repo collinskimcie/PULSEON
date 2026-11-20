@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <WiFi.h>
 
 #if LV_FONT_MONTSERRAT_48
 #define NF_XL (&lv_font_montserrat_48)
