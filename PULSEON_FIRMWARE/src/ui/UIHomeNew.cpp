@@ -33,6 +33,9 @@
 #define NF_S LV_FONT_DEFAULT
 #endif
 
+#ifdef HEX
+#undef HEX
+#endif
 #define HEX(v) lv_color_hex(v)
 
 namespace
