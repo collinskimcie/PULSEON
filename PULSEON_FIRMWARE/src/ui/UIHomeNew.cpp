@@ -526,6 +526,7 @@ void wfBuild(lv_obj_t* panel)
     wf.alarm = lbl(panel, NF_S, red, 120, 264, 56, "--:--");
 
     wf.bat = mkGauge(panel, 178, 262, 56, 0, 100, 5, "bat");
+    wifiBadge(panel, NEW_FACE_WAYFINDER, 120, 6, red, HEX(0x7A1A1A));
 }
 
 
